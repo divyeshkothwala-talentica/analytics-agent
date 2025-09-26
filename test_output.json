@@ -1,0 +1,19 @@
+{
+  "report_type": "operational_report",
+  "analysis_type": "delay_analysis",
+  "generated_at": "2025-09-25T16:44:31.471964",
+  "executive_summary": "Analysis of 100 orders shows delay patterns requiring attention.",
+  "key_performance_indicators": {
+    "total_orders": 100,
+    "success_rate": 75.0,
+    "average_delay_minutes": 45.5
+  },
+  "recommendations": [
+    {
+      "category": "operational",
+      "action": "Implement dynamic routing",
+      "expected_impact": "Reduce delays by 30%",
+      "priority": "high"
+    }
+  ]
+}

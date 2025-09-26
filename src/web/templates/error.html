@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white text-center">
+                <h1 class="display-1 mb-0">{{ error_code }}</h1>
+            </div>
+            <div class="card-body text-center">
+                <h4 class="card-title">
+                    {% if error_code == 404 %}
+                        <i class="fas fa-search"></i> Page Not Found
+                    {% elif error_code == 500 %}
+                        <i class="fas fa-exclamation-triangle"></i> Internal Server Error
+                    {% else %}
+                        <i class="fas fa-times-circle"></i> Error Occurred
+                    {% endif %}
+                </h4>
+                
+                <p class="card-text text-muted mb-4">
+                    {{ error_message }}
+                </p>
+                
+                {% if error_code == 404 %}
+                    <p>The page you're looking for doesn't exist or has been moved.</p>
+                {% elif error_code == 500 %}
+                    <p>Something went wrong on our end. Please try again later.</p>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('home') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-home"></i> Go Home
+                    </a>
+                    <button onclick="history.back()" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Go Back
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        {% if error_code == 404 %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-compass"></i> Where would you like to go?
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <a href="{{ url_for('home') }}" class="text-decoration-none">
+                                    <i class="fas fa-home text-primary"></i> Home - Ask Questions
+                                </a>
+                            </li>
+                            <li class="mb-2">
+                                <a href="{{ url_for('examples') }}" class="text-decoration-none">
+                                    <i class="fas fa-lightbulb text-warning"></i> Examples - Sample Queries
+                                </a>
+                            </li>
+                            <li class="mb-2">
+                                <a href="{{ url_for('demo') }}" class="text-decoration-none">
+                                    <i class="fas fa-play-circle text-success"></i> Demo - Try Scenarios
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <a href="{{ url_for('history') }}" class="text-decoration-none">
+                                    <i class="fas fa-history text-secondary"></i> History - Previous Queries
+                                </a>
+                            </li>
+                            <li class="mb-2">
+                                <a href="{{ url_for('stats') }}" class="text-decoration-none">
+                                    <i class="fas fa-chart-bar text-info"></i> Stats - Performance Metrics
+                                </a>
+                            </li>
+                            <li class="mb-2">
+                                <a href="{{ url_for('about') }}" class="text-decoration-none">
+                                    <i class="fas fa-info-circle text-primary"></i> About - System Information
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

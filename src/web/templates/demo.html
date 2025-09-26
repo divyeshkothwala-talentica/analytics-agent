@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Demo Scenarios - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-play-circle"></i> Interactive Demo Scenarios
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Try these predefined demo scenarios to explore the full capabilities of our analytics tool.
+                    Each scenario demonstrates a different use case with realistic data and insights.
+                </p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>How it works:</strong> Click "Run Demo" to execute the scenario query and see the results.
+                    Each demo uses simulated data to show realistic analytics insights.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% for scenario in scenarios %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100 demo-scenario-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    {% if scenario.name == 'City Delay Analysis' %}
+                        <i class="fas fa-map-marker-alt"></i>
+                    {% elif scenario.name == 'Client Failure Analysis' %}
+                        <i class="fas fa-user-tie"></i>
+                    {% elif scenario.name == 'Warehouse Performance' %}
+                        <i class="fas fa-warehouse"></i>
+                    {% elif scenario.name == 'City Comparison' %}
+                        <i class="fas fa-balance-scale"></i>
+                    {% elif scenario.name == 'Seasonal Analysis' %}
+                        <i class="fas fa-calendar-alt"></i>
+                    {% elif scenario.name == 'Capacity Planning' %}
+                        <i class="fas fa-chart-line"></i>
+                    {% else %}
+                        <i class="fas fa-cog"></i>
+                    {% endif %}
+                    {{ scenario.name }}
+                </h5>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <p class="text-muted mb-3">{{ scenario.description }}</p>
+                
+                <div class="mb-3 flex-grow-1">
+                    <h6>Sample Query:</h6>
+                    <div class="bg-light p-3 rounded border">
+                        <code>{{ scenario.query }}</code>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Expected Insights:</h6>
+                    <ul class="list-unstyled">
+                        {% if scenario.name == 'City Delay Analysis' %}
+                            <li><i class="fas fa-check text-success"></i> Delay percentages and causes</li>
+                            <li><i class="fas fa-check text-success"></i> Weather and traffic impact</li>
+                            <li><i class="fas fa-check text-success"></i> Time-based patterns</li>
+                        {% elif scenario.name == 'Client Failure Analysis' %}
+                            <li><i class="fas fa-check text-success"></i> Failure breakdown by stage</li>
+                            <li><i class="fas fa-check text-success"></i> Client-specific patterns</li>
+                            <li><i class="fas fa-check text-success"></i> Improvement recommendations</li>
+                        {% elif scenario.name == 'Warehouse Performance' %}
+                            <li><i class="fas fa-check text-success"></i> Efficiency scores and rankings</li>
+                            <li><i class="fas fa-check text-success"></i> Operational bottlenecks</li>
+                            <li><i class="fas fa-check text-success"></i> Resource optimization tips</li>
+                        {% elif scenario.name == 'City Comparison' %}
+                            <li><i class="fas fa-check text-success"></i> Side-by-side performance metrics</li>
+                            <li><i class="fas fa-check text-success"></i> Regional pattern analysis</li>
+                            <li><i class="fas fa-check text-success"></i> Best practice identification</li>
+                        {% elif scenario.name == 'Seasonal Analysis' %}
+                            <li><i class="fas fa-check text-success"></i> Seasonal impact factors</li>
+                            <li><i class="fas fa-check text-success"></i> Festival period analysis</li>
+                            <li><i class="fas fa-check text-success"></i> Preparation strategies</li>
+                        {% elif scenario.name == 'Capacity Planning' %}
+                            <li><i class="fas fa-check text-success"></i> Resource requirements</li>
+                            <li><i class="fas fa-check text-success"></i> Performance impact prediction</li>
+                            <li><i class="fas fa-check text-success"></i> Infrastructure recommendations</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="mt-auto">
+                    <button class="btn btn-success btn-block w-100" onclick="runDemo('{{ scenario.query }}', '{{ scenario.name }}')">
+                        <i class="fas fa-play"></i> Run Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Demo Results Modal -->
+<div class="modal fade" id="demoResultsModal" tabindex="-1" aria-labelledby="demoResultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="demoResultsModalLabel">
+                    <i class="fas fa-chart-bar"></i> Demo Results
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="demoResultsContent">
+                <!-- Results will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="tryOnHomePage()">Try on Home Page</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 id="loadingMessage">Running Demo...</h5>
+                <p class="text-muted mb-0" id="loadingSubtext">🔍 Analyzing your question...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.demo-scenario-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.demo-scenario-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.modal-xl {
+    max-width: 90%;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentDemoQuery = '';
+let currentDemoName = '';
+
+function runDemo(query, scenarioName) {
+    currentDemoQuery = query;
+    currentDemoName = scenarioName;
+    
+    // Show loading modal
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    // Update loading messages
+    updateLoadingMessage();
+    
+    // Run the query
+    fetch('/query', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: query })
+    })
+    .then(response => response.json())
+    .then(result => {
+        // Hide loading modal
+        loadingModal.hide();
+        
+        // Show results
+        displayDemoResults(result, scenarioName);
+    })
+    .catch(error => {
+        console.error('Demo error:', error);
+        loadingModal.hide();
+        
+        // Show error
+        displayDemoResults({
+            success: false,
+            error: 'Demo execution failed. Please try again.',
+            query: query
+        }, scenarioName);
+    });
+}
+
+function updateLoadingMessage() {
+    const messages = [
+        '🔍 Analyzing your question...',
+        '📊 Querying data across collections...',
+        '🤖 Generating insights...',
+        '📈 Processing correlations...',
+        '💡 Preparing recommendations...'
+    ];
+    
+    let messageIndex = 0;
+    const subtextElement = document.getElementById('loadingSubtext');
+    
+    const interval = setInterval(() => {
+        if (messageIndex < messages.length) {
+            subtextElement.textContent = messages[messageIndex];
+            messageIndex++;
+        } else {
+            clearInterval(interval);
+        }
+    }, 1000);
+    
+    // Clear interval when modal is hidden
+    document.getElementById('loadingModal').addEventListener('hidden.bs.modal', () => {
+        clearInterval(interval);
+    });
+}
+
+function displayDemoResults(result, scenarioName) {
+    const resultsContent = document.getElementById('demoResultsContent');
+    const modalTitle = document.getElementById('demoResultsModalLabel');
+    
+    modalTitle.innerHTML = `<i class="fas fa-chart-bar"></i> ${scenarioName} - Results`;
+    
+    if (result.success) {
+        const html = `
+            <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle"></i> Demo Completed Successfully</h5>
+                <p class="mb-0">Query executed in ${result.duration ? result.duration.toFixed(2) + 's' : 'N/A'} with ${result.result_count || 0} results found.</p>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-question-circle"></i> Query:</h6>
+                    <div class="bg-light p-3 rounded border">
+                        <code>${result.query}</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-lightbulb"></i> Executive Summary:</h6>
+                    <div class="alert alert-info">
+                        ${result.explanation || 'Analysis completed successfully with actionable insights.'}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <div class="h4 text-primary">${result.result_count || 0}</div>
+                            <small class="text-muted">Results Found</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <div class="h4 text-success">${result.duration ? (result.duration * 1000).toFixed(0) + 'ms' : 'N/A'}</div>
+                            <small class="text-muted">Processing Time</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <div class="h4 text-info">${result.metadata?.primary_collection || 'Multiple'}</div>
+                            <small class="text-muted">Data Source</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            ${result.correlations ? `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-link"></i> Correlations Detected</h6>
+                            <p class="mb-0">Additional data correlations were found and included in the analysis.</p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="row">
+                <div class="col-12">
+                    <h6><i class="fas fa-cogs"></i> Technical Details:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Query Type:</strong></td>
+                                <td>${result.parsed_query?.intent || 'Analysis'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Collections Used:</strong></td>
+                                <td>${result.parsed_query?.collections_needed?.join(', ') || 'Multiple'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Processing Method:</strong></td>
+                                <td>AI-powered natural language processing</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Confidence:</strong></td>
+                                <td>${result.parsed_query?.confidence ? (result.parsed_query.confidence * 100).toFixed(1) + '%' : 'High'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        resultsContent.innerHTML = html;
+    } else {
+        const html = `
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> Demo Failed</h5>
+                <p><strong>Error:</strong> ${result.error || 'Unknown error occurred'}</p>
+                <p class="mb-0">This might be due to system initialization or data availability issues.</p>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6><i class="fas fa-question-circle"></i> Attempted Query:</h6>
+                    <div class="bg-light p-3 rounded border">
+                        <code>${result.query}</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h6><i class="fas fa-lightbulb"></i> Troubleshooting Tips:</h6>
+                <ul class="mb-0">
+                    <li>Ensure the data pipeline has been run successfully</li>
+                    <li>Check that MongoDB is running and accessible</li>
+                    <li>Verify OpenAI API key is configured correctly</li>
+                    <li>Try running the demo again in a few moments</li>
+                </ul>
+            </div>
+        `;
+        resultsContent.innerHTML = html;
+    }
+    
+    // Show results modal
+    const resultsModal = new bootstrap.Modal(document.getElementById('demoResultsModal'));
+    resultsModal.show();
+}
+
+function tryOnHomePage() {
+    // Store the query and redirect to home page
+    sessionStorage.setItem('pendingQuery', currentDemoQuery);
+    window.location.href = '{{ url_for("home") }}';
+}
+
+// Handle pending query from sessionStorage
+document.addEventListener('DOMContentLoaded', function() {
+    const pendingQuery = sessionStorage.getItem('pendingQuery');
+    if (pendingQuery) {
+        sessionStorage.removeItem('pendingQuery');
+        // If we're on the home page, set the query
+        const queryInput = document.getElementById('queryInput');
+        if (queryInput) {
+            queryInput.value = pendingQuery;
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Examples - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> Sample Queries & Use Cases
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Explore these sample queries to understand the capabilities of our analytics tool. 
+                    Click any query to try it on the home page.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% for category, queries in sample_queries.items() %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    {% if category == 'city_delay_analysis' %}
+                        <i class="fas fa-map-marker-alt"></i> City Delay Analysis
+                    {% elif category == 'client_failure_analysis' %}
+                        <i class="fas fa-user-tie"></i> Client Failure Analysis
+                    {% elif category == 'warehouse_performance' %}
+                        <i class="fas fa-warehouse"></i> Warehouse Performance
+                    {% elif category == 'city_comparison' %}
+                        <i class="fas fa-balance-scale"></i> City Comparison
+                    {% elif category == 'seasonal_analysis' %}
+                        <i class="fas fa-calendar-alt"></i> Seasonal Analysis
+                    {% elif category == 'capacity_planning' %}
+                        <i class="fas fa-chart-line"></i> Capacity Planning
+                    {% elif category == 'performance_trends' %}
+                        <i class="fas fa-trending-up"></i> Performance Trends
+                    {% elif category == 'operational_insights' %}
+                        <i class="fas fa-cogs"></i> Operational Insights
+                    {% else %}
+                        <i class="fas fa-question"></i> {{ category.replace('_', ' ').title() }}
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    {% if category == 'city_delay_analysis' %}
+                        <p class="text-muted">Analyze delivery delays in specific cities and identify root causes.</p>
+                    {% elif category == 'client_failure_analysis' %}
+                        <p class="text-muted">Investigate delivery failures for specific clients and identify patterns.</p>
+                    {% elif category == 'warehouse_performance' %}
+                        <p class="text-muted">Evaluate warehouse efficiency and identify performance bottlenecks.</p>
+                    {% elif category == 'city_comparison' %}
+                        <p class="text-muted">Compare delivery performance between different cities or regions.</p>
+                    {% elif category == 'seasonal_analysis' %}
+                        <p class="text-muted">Analyze seasonal patterns and their impact on logistics operations.</p>
+                    {% elif category == 'capacity_planning' %}
+                        <p class="text-muted">Predict the impact of increased order volumes and plan capacity.</p>
+                    {% elif category == 'performance_trends' %}
+                        <p class="text-muted">Track performance trends over time and identify improvements.</p>
+                    {% elif category == 'operational_insights' %}
+                        <p class="text-muted">Get insights into operational patterns and optimization opportunities.</p>
+                    {% endif %}
+                </div>
+                
+                {% for query in queries %}
+                <div class="sample-query p-3 mb-2 border rounded bg-light" onclick="tryQuery('{{ query }}')">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <strong>{{ query }}</strong>
+                        </div>
+                        <div class="ms-2">
+                            <i class="fas fa-play-circle text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    {{ queries|length }} sample queries available
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Tips Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-tips"></i> Tips for Better Queries
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Good Query Examples:</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-primary"></i>
+                                <strong>Specific:</strong> "Why were deliveries delayed in Mumbai yesterday?"
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-primary"></i>
+                                <strong>Time-bound:</strong> "Compare performance between Q1 and Q2"
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-primary"></i>
+                                <strong>Focused:</strong> "Top 5 reasons for warehouse failures in August"
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-times-circle text-danger"></i> Avoid These:</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-danger"></i>
+                                <strong>Too vague:</strong> "Show me data"
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-danger"></i>
+                                <strong>Too broad:</strong> "Tell me everything about logistics"
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-arrow-right text-danger"></i>
+                                <strong>No context:</strong> "Why failed?"
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <h6><i class="fas fa-lightbulb"></i> Pro Tips:</h6>
+                    <ul class="mb-0">
+                        <li>Include specific cities, dates, or client names when relevant</li>
+                        <li>Use comparison words like "compare", "versus", "difference between"</li>
+                        <li>Ask "why", "what", "how", "when" questions for deeper insights</li>
+                        <li>Mention specific metrics like "delays", "failures", "efficiency", "ratings"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function tryQuery(query) {
+    // Store the query in sessionStorage and redirect to home
+    sessionStorage.setItem('pendingQuery', query);
+    window.location.href = '{{ url_for("home") }}';
+}
+
+// Check if there's a pending query when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const pendingQuery = sessionStorage.getItem('pendingQuery');
+    if (pendingQuery) {
+        sessionStorage.removeItem('pendingQuery');
+        // If we're on the home page, set the query
+        const queryInput = document.getElementById('queryInput');
+        if (queryInput) {
+            queryInput.value = pendingQuery;
+        }
+    }
+});
+</script>
+{% endblock %}

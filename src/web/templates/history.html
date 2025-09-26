@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Query History - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-history"></i> Query History
+                </h4>
+                {% if stats.total_queries > 0 %}
+                <form method="POST" action="{{ url_for('clear_history') }}" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm" 
+                            onclick="return confirm('Are you sure you want to clear all history?')">
+                        <i class="fas fa-trash"></i> Clear History
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if stats.total_queries > 0 %}
+                    <p class="text-muted">
+                        Your query history for this session. Click any query to run it again.
+                    </p>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No queries yet</h5>
+                        <p class="text-muted">Start asking questions to see your history here.</p>
+                        <a href="{{ url_for('home') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Ask Your First Question
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if stats.total_queries > 0 %}
+<!-- Statistics -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-primary">{{ stats.total_queries }}</div>
+                <small class="text-muted">Total Queries</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-success">{{ stats.successful_queries }}</div>
+                <small class="text-muted">Successful</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-info">{{ "%.1f"|format(stats.success_rate) }}%</div>
+                <small class="text-muted">Success Rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-warning">{{ "%.2f"|format(stats.avg_duration) }}s</div>
+                <small class="text-muted">Avg Duration</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Query List -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Query Details
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="15%">Time</th>
+                                <th width="50%">Query</th>
+                                <th width="10%">Status</th>
+                                <th width="10%">Duration</th>
+                                <th width="10%">Results</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for query in query_history %}
+                            <tr class="query-row" onclick="runQuery('{{ query.query }}')">
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ query.timestamp|datetime }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="query-text">
+                                        {{ query.query }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if query.success %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Success
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Failed
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ query.duration|duration }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if query.success %}
+                                        <span class="badge bg-info">
+                                            {{ query.result_count or 0 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.query-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.query-row:hover {
+    background-color: #f8f9fa;
+}
+.query-text {
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.query-text:hover {
+    white-space: normal;
+    overflow: visible;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runQuery(query) {
+    // Store the query and redirect to home page
+    sessionStorage.setItem('pendingQuery', query);
+    window.location.href = '{{ url_for("home") }}';
+}
+
+// Add tooltip for long queries
+document.addEventListener('DOMContentLoaded', function() {
+    const queryTexts = document.querySelectorAll('.query-text');
+    queryTexts.forEach(function(element) {
+        if (element.scrollWidth > element.clientWidth) {
+            element.title = element.textContent;
+        }
+    });
+});
+</script>
+{% endblock %}

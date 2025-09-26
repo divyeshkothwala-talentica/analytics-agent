@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}About - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-info-circle"></i> About Logistics Analytics Q&A Tool
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    {{ system_info.description }}
+                </p>
+                <p>
+                    Our advanced analytics platform combines artificial intelligence with real-time data processing 
+                    to provide instant insights into your logistics operations. Ask questions in natural language 
+                    and get actionable recommendations to optimize your supply chain performance.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Capabilities -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs"></i> System Capabilities
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    {% for capability in system_info.capabilities %}
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>{{ capability }}</strong>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle"></i> Supported Query Types
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    {% for query_type in system_info.supported_queries %}
+                    <li class="mb-2">
+                        <i class="fas fa-arrow-right text-primary"></i>
+                        {{ query_type }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Technical Architecture -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-sitemap"></i> Technical Architecture
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center mb-4">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="fas fa-brain fa-2x"></i>
+                            </div>
+                            <h6 class="mt-3">AI Processing Layer</h6>
+                            <p class="text-muted small">
+                                Natural language understanding using OpenAI GPT models for query parsing and result explanation.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center mb-4">
+                            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="fas fa-database fa-2x"></i>
+                            </div>
+                            <h6 class="mt-3">Data Processing Engine</h6>
+                            <p class="text-muted small">
+                                MongoDB aggregation pipelines with intelligent query optimization and caching mechanisms.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center mb-4">
+                            <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="fas fa-chart-line fa-2x"></i>
+                            </div>
+                            <h6 class="mt-3">Analytics & Insights</h6>
+                            <p class="text-muted small">
+                                Statistical analysis, correlation detection, and predictive modeling for actionable insights.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Sources -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-table"></i> Data Sources & Collections
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shopping-cart text-primary"></i> Orders Collection</h6>
+                        <p class="text-muted small mb-3">
+                            Order details, delivery status, client information, timestamps, and failure reasons.
+                        </p>
+                        
+                        <h6><i class="fas fa-truck text-success"></i> Fleet Logs Collection</h6>
+                        <p class="text-muted small mb-3">
+                            Vehicle tracking data, driver information, route details, and operational status.
+                        </p>
+                        
+                        <h6><i class="fas fa-warehouse text-info"></i> Warehouse Logs Collection</h6>
+                        <p class="text-muted small mb-3">
+                            Warehouse operations, processing times, equipment status, and staff information.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-star text-warning"></i> Feedback Collection</h6>
+                        <p class="text-muted small mb-3">
+                            Customer ratings, comments, satisfaction scores, and delivery experience data.
+                        </p>
+                        
+                        <h6><i class="fas fa-cloud text-secondary"></i> External Factors Collection</h6>
+                        <p class="text-muted small mb-3">
+                            Weather conditions, traffic data, special events, and environmental factors.
+                        </p>
+                        
+                        <h6><i class="fas fa-users text-primary"></i> Client & Driver Data</h6>
+                        <p class="text-muted small mb-3">
+                            Client profiles, driver performance metrics, and relationship data.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance & Features -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-tachometer-alt"></i> Performance Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-bolt text-warning"></i>
+                        <strong>Fast Query Processing:</strong> Most queries complete in under 10 seconds
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-memory text-info"></i>
+                        <strong>Intelligent Caching:</strong> Repeated queries use cached results for instant responses
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-chart-bar text-success"></i>
+                        <strong>Real-time Monitoring:</strong> Performance metrics and system health tracking
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-shield-alt text-primary"></i>
+                        <strong>Error Handling:</strong> Graceful error recovery and helpful error messages
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-tools"></i> Available Interfaces
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-terminal text-dark"></i>
+                        <strong>Command Line Interface:</strong> Interactive CLI for power users and automation
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-globe text-primary"></i>
+                        <strong>Web Interface:</strong> User-friendly web application with rich visualizations
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-play-circle text-success"></i>
+                        <strong>Demo Scripts:</strong> Automated demonstrations for presentations and testing
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-code text-info"></i>
+                        <strong>API Endpoints:</strong> RESTful APIs for custom integrations and applications
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Getting Started -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-rocket"></i> Getting Started
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <span class="h4 text-primary mb-0">1</span>
+                            </div>
+                            <h6>Ask Your Question</h6>
+                            <p class="text-muted small">
+                                Type your logistics question in natural language on the home page.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <span class="h4 text-success mb-0">2</span>
+                            </div>
+                            <h6>Get Instant Analysis</h6>
+                            <p class="text-muted small">
+                                Our AI processes your query and analyzes relevant data across all collections.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                <span class="h4 text-info mb-0">3</span>
+                            </div>
+                            <h6>Act on Insights</h6>
+                            <p class="text-muted small">
+                                Receive actionable recommendations and detailed insights to optimize operations.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-play"></i> Start Asking Questions
+                    </a>
+                    <a href="{{ url_for('examples') }}" class="btn btn-outline-primary btn-lg me-3">
+                        <i class="fas fa-lightbulb"></i> View Examples
+                    </a>
+                    <a href="{{ url_for('demo') }}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-play-circle"></i> Try Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info"></i> System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Version:</strong></td>
+                                <td>{{ system_info.version }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>AI Model:</strong></td>
+                                <td>OpenAI GPT-4</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Database:</strong></td>
+                                <td>MongoDB with Aggregation Pipeline</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Framework:</strong></td>
+                                <td>Python Flask + Bootstrap</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Response Time:</strong></td>
+                                <td>2-15 seconds typical</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data Processing:</strong></td>
+                                <td>Real-time aggregation</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Caching:</strong></td>
+                                <td>Intelligent query caching</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Monitoring:</strong></td>
+                                <td>Real-time performance tracking</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

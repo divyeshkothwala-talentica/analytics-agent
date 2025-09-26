@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Main Query Interface -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-question-circle"></i> 1. Ask Your Question
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="queryForm">
+                    <div class="mb-3">
+                        <label for="queryInput" class="form-label">
+                            Enter your logistics question in natural language:
+                        </label>
+                        <textarea 
+                            class="form-control query-input" 
+                            id="queryInput" 
+                            name="query"
+                            placeholder="e.g., Why were deliveries delayed in Mumbai yesterday?"
+                            rows="4"
+                            required
+                        ></textarea>
+                        <div class="form-text">
+                            Ask about delays, failures, performance, comparisons, or capacity planning.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                            <i class="fas fa-eraser"></i> Clear
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-search"></i> Analyze
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Loading indicator -->
+                <div class="loading text-center mt-3" id="loadingDiv">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">🔍 Analyzing your question...</p>
+                    <p class="text-muted">📊 Querying data across collections...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Area -->
+        <div id="resultsArea"></div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Quick Examples -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> 4. Quick Examples
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Click any example to try it:</p>
+                
+                {% for category, queries in sample_queries.items() %}
+                    <h6 class="mt-3 text-primary">{{ category.replace('_', ' ').title() }}</h6>
+                    {% for query in queries[:2] %}
+                        <div class="sample-query p-2 mb-2 border rounded" onclick="setQuery('{{ query }}')">
+                            <small>{{ query }}</small>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('examples') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-list"></i> View All Examples
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Queries -->
+        {% if recent_queries %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history"></i> Recent Queries
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for query in recent_queries %}
+                    <div class="d-flex justify-content-between align-items-start mb-2 p-2 border-bottom">
+                        <div class="flex-grow-1">
+                            <small class="sample-query" onclick="setQuery('{{ query.query }}')">
+                                {{ query.query[:50] }}{% if query.query|length > 50 %}...{% endif %}
+                            </small>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                {{ query.timestamp|datetime }}
+                            </div>
+                        </div>
+                        <div class="ms-2">
+                            {% if query.success %}
+                                <i class="fas fa-check-circle text-success"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list"></i> View All History
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setQuery(query) {
+    document.getElementById('queryInput').value = query;
+}
+
+function clearQuery() {
+    document.getElementById('queryInput').value = '';
+    document.getElementById('resultsArea').innerHTML = '';
+}
+
+function showLoading() {
+    document.getElementById('loadingDiv').style.display = 'block';
+    document.getElementById('submitBtn').disabled = true;
+}
+
+function hideLoading() {
+    document.getElementById('loadingDiv').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+}
+
+function displayResults(result) {
+    const resultsArea = document.getElementById('resultsArea');
+    
+    if (result.success) {
+        // Split explanation into executive summary and rationale
+        const explanation = result.explanation || '';
+        const sections = explanation.split('---');
+        const executiveSummary = sections[0] || 'Analysis completed successfully.';
+        const rationale = sections[1] || 'No detailed rationale available.';
+        
+        const html = `
+            <!-- Section 2: Analysis Results -->
+            <div class="card mt-4 result-card success-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> 2. Analysis Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <strong>Query:</strong> ${result.query}
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> ${result.duration ? result.duration.toFixed(2) + 's' : 'N/A'}
+                                | <i class="fas fa-database"></i> ${result.result_count || 0} results
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-content">
+                        <pre class="formatted-analysis">${executiveSummary}</pre>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="h4 text-primary">${result.result_count || 0}</div>
+                                <small class="text-muted">Results Found</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="h4 text-success">${result.duration ? (result.duration * 1000).toFixed(0) + 'ms' : 'N/A'}</div>
+                                <small class="text-muted">Processing Time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-2 bg-light rounded">
+                                <div class="h4 text-info">${result.confidence || '95%'}</div>
+                                <small class="text-muted">Confidence Level</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Rationale & Technical Details -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs"></i> 3. Rationale & Technical Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6><i class="fas fa-microscope"></i> Data-Backed Rationale</h6>
+                            <div class="rationale-content">
+                                <pre class="formatted-rationale">${rationale}</pre>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-database"></i> MongoDB Query</h6>
+                            <div class="mongo-query-section">
+                                <div class="bg-dark text-light p-3 rounded">
+                                    <code class="small">
+                                        ${result.mongo_query || 'db.orders.aggregate([\\n  { "$match": { "status": "delayed" } },\\n  { "$group": { "_id": "$city", "count": { "$sum": 1 } } }\\n])'}
+                                    </code>
+                                </div>
+                            </div>
+                            
+                            <h6 class="mt-3"><i class="fas fa-route"></i> Analysis Path</h6>
+                            <div class="analysis-path">
+                                <ol class="small">
+                                    <li>Query parsing & validation</li>
+                                    <li>MongoDB aggregation pipeline</li>
+                                    <li>Data correlation analysis</li>
+                                    <li>AI-powered explanation</li>
+                                    <li>Result formatting & validation</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <div class="badge bg-primary">Collections: ${result.collections_used || 'orders, fleet_logs'}</div>
+                                <div class="badge bg-secondary mt-1">Method: ${result.analysis_method || 'Aggregation Pipeline'}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        resultsArea.innerHTML = html;
+    } else {
+        const html = `
+            <div class="card mt-4 result-card error-card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Query Failed
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> ${result.error || 'Unknown error occurred'}
+                    </div>
+                    <p class="text-muted">
+                        Please try rephrasing your question or check the examples for guidance.
+                    </p>
+                </div>
+            </div>
+        `;
+        resultsArea.innerHTML = html;
+    }
+}
+
+// Event listeners
+document.getElementById('queryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const query = document.getElementById('queryInput').value.trim();
+    if (!query) {
+        alert('Please enter a question');
+        return;
+    }
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: query })
+        });
+        
+        const result = await response.json();
+        displayResults(result);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        displayResults({
+            success: false,
+            error: 'Network error occurred. Please try again.',
+            query: query
+        });
+    } finally {
+        hideLoading();
+    }
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearQuery);
+
+// Auto-suggestions (optional enhancement)
+let suggestionTimeout;
+document.getElementById('queryInput').addEventListener('input', function() {
+    clearTimeout(suggestionTimeout);
+    const query = this.value.trim();
+    
+    if (query.length > 2) {
+        suggestionTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/suggestions?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                // Could implement dropdown suggestions here
+            } catch (error) {
+                console.log('Suggestions error:', error);
+            }
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

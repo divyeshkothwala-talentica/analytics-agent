@@ -1,0 +1,19 @@
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4
+OPENAI_MAX_RETRIES=3
+OPENAI_RETRY_DELAY=1.0
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/
+MONGODB_DATABASE=logistics_analytics
+
+# Application Configuration
+LOG_LEVEL=INFO
+CACHE_TTL_MINUTES=30
+MAX_CACHE_SIZE=1000
+
+# Performance Configuration
+QUERY_TIMEOUT_SECONDS=30
+MAX_RESULTS_LIMIT=1000
+ENABLE_QUERY_OPTIMIZATION=true

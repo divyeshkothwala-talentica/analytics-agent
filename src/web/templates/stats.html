@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Statistics - Logistics Analytics Q&A Tool{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="alert alert-danger">
+    <h5><i class="fas fa-exclamation-triangle"></i> Error</h5>
+    <p>{{ error }}</p>
+    <a href="{{ url_for('home') }}" class="btn btn-primary">Go to Home</a>
+</div>
+{% else %}
+
+<!-- Real-time Stats Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> Performance Statistics
+                </h4>
+                <button class="btn btn-outline-light btn-sm" onclick="refreshStats()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">Real-time performance metrics and system statistics</p>
+                <small class="text-muted">Last updated: <span id="lastUpdated">{{ moment().format('YYYY-MM-DD HH:mm:ss') }}</span></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-primary">{{ session_stats.total_queries }}</div>
+                <small class="text-muted">Total Queries</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-success">{{ "%.1f"|format(session_stats.success_rate) }}%</div>
+                <small class="text-muted">Success Rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-warning">{{ session_stats.avg_query_time_seconds|duration }}</div>
+                <small class="text-muted">Avg Query Time</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <div class="h3 text-info">{{ session_stats.session_duration|duration }}</div>
+                <small class="text-muted">Session Duration</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Usage Statistics -->
+{% if engine_stats.openai_usage %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot"></i> AI Usage Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 text-primary">{{ "{:,}".format(engine_stats.openai_usage.total_tokens_used) }}</div>
+                            <small class="text-muted">Tokens Used</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 text-success">${{ "%.4f"|format(engine_stats.openai_usage.total_cost_usd) }}</div>
+                            <small class="text-muted">Estimated Cost</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 text-info">{{ engine_stats.openai_usage.model }}</div>
+                            <small class="text-muted">AI Model</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Query Performance -->
+{% if engine_stats.optimizer_stats %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-tachometer-alt"></i> Query Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center mb-3">
+                            <div class="h5 text-success">{{ engine_stats.optimizer_stats.cache_hits or 0 }}</div>
+                            <small class="text-muted">Cache Hits</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center mb-3">
+                            <div class="h5 text-warning">{{ engine_stats.optimizer_stats.cache_misses or 0 }}</div>
+                            <small class="text-muted">Cache Misses</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="h5 text-primary">{{ "%.1f"|format(engine_stats.optimizer_stats.avg_execution_time_ms or 0) }}ms</div>
+                    <small class="text-muted">Avg Execution Time</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-database"></i> Data Collections
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Available Collections:</strong>
+                </div>
+                {% for collection in engine_stats.available_collections %}
+                    <span class="badge bg-secondary me-1 mb-1">{{ collection }}</span>
+                {% endfor %}
+                <div class="mt-3">
+                    <small class="text-muted">
+                        Total: {{ engine_stats.available_collections|length }} collections
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- System Performance -->
+{% if monitor_stats.system_performance %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-server"></i> System Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h5 text-warning">{{ "%.1f"|format(monitor_stats.system_performance.avg_cpu_usage) }}%</div>
+                            <small class="text-muted">Avg CPU Usage</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h5 text-info">{{ "%.0f"|format(monitor_stats.system_performance.avg_memory_usage_mb) }}MB</div>
+                            <small class="text-muted">Avg Memory Usage</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h5 text-danger">{{ "%.0f"|format(monitor_stats.system_performance.peak_memory_mb) }}MB</div>
+                            <small class="text-muted">Peak Memory</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h5 text-warning">{{ "%.1f"|format(monitor_stats.system_performance.peak_cpu_percent) }}%</div>
+                            <small class="text-muted">Peak CPU</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Performance Warnings -->
+{% if monitor_stats.warnings %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Performance Warnings
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for warning in monitor_stats.warnings %}
+                    <div class="alert alert-warning mb-2">
+                        <i class="fas fa-warning"></i> {{ warning }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Query Performance Details -->
+{% if monitor_stats.query_performance %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line"></i> Query Performance Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <div class="h6 text-success">{{ monitor_stats.query_performance.min_time|duration }}</div>
+                            <small class="text-muted">Fastest</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <div class="h6 text-info">{{ monitor_stats.query_performance.median_time|duration }}</div>
+                            <small class="text-muted">Median</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <div class="h6 text-warning">{{ monitor_stats.query_performance.p95_time|duration }}</div>
+                            <small class="text-muted">95th Percentile</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <div class="h6 text-danger">{{ monitor_stats.query_performance.max_time|duration }}</div>
+                            <small class="text-muted">Slowest</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <div class="h6 text-primary">{{ monitor_stats.query_performance.slow_queries_count }}</div>
+                            <small class="text-muted">Slow Queries</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Error Analysis -->
+{% if monitor_stats.error_analysis %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-bug"></i> Error Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Total Errors:</strong> {{ monitor_stats.error_analysis.total_errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Most Common:</strong> {{ monitor_stats.error_analysis.most_common_error or 'None' }}
+                    </div>
+                </div>
+                
+                {% if monitor_stats.error_analysis.error_types %}
+                <div class="row">
+                    <div class="col-12">
+                        <h6>Error Types:</h6>
+                        {% for error_type, count in monitor_stats.error_analysis.error_types.items() %}
+                            <span class="badge bg-danger me-2 mb-1">{{ error_type }}: {{ count }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshStats() {
+    // Show loading state
+    const refreshBtn = document.querySelector('button[onclick="refreshStats()"]');
+    const originalContent = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    refreshBtn.disabled = true;
+    
+    // Reload the page to get fresh stats
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update last updated time
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+            
+            // Could update specific metrics here without full page reload
+            console.log('Stats updated:', data);
+        })
+        .catch(error => {
+            console.log('Auto-refresh error:', error);
+        });
+}, 30000);
+
+// Update last updated time on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+});
+</script>
+{% endblock %}
