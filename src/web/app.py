@@ -647,7 +647,34 @@ def try_use_case_fallback(user_query: str) -> Optional[Dict[str, Any]]:
             result['confidence'] = result.get('data_sources', {}).get('confidence_level', '98%')
             return result
         
-        # Warehouse performance - broader matching
+        # Warehouse capacity analysis - specific matching for capacity queries
+        elif any(word in query_lower for word in ['warehouse', 'facility', 'distribution']) and any(word in query_lower for word in ['capacity', 'total capacity', 'sum of capacity']):
+            try:
+                # Import warehouse analyzer
+                from ai.warehouse_analyzer import WarehouseCapacityAnalyzer
+                warehouse_analyzer = WarehouseCapacityAnalyzer()
+                
+                # Analyze the warehouse capacity query
+                capacity_result = warehouse_analyzer.analyze_warehouse_query(user_query)
+                formatted_result = warehouse_analyzer.format_analysis_result(capacity_result)
+                
+                result = {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': formatted_result,
+                    'result_count': capacity_result.get('total_capacity', 0) or capacity_result.get('warehouse_count', 0),
+                    'analysis_type': 'warehouse_capacity',
+                    'data_source': 'MongoDB warehouses collection',
+                    'confidence_level': '100%'
+                }
+                return result
+                
+            except Exception as e:
+                logger.error(f"Warehouse capacity analysis error: {e}")
+                # Fall back to warehouse performance analysis
+                pass
+        
+        # Warehouse performance - broader matching for other warehouse queries
         elif any(word in query_lower for word in ['warehouse', 'facility', 'distribution']):
             warehouse_id = 'Warehouse_B'
             if 'warehouse a' in query_lower or 'warehouse-a' in query_lower:

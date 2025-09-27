@@ -135,7 +135,11 @@ class EnhancedCSVEngine:
             elif self._matches_client_failure_pattern(query_lower):
                 return self._analyze_client_failures(user_query)
             
-            # Pattern 3: Warehouse performance analysis
+            # Pattern 3: Warehouse capacity analysis
+            elif self._matches_warehouse_capacity_pattern(query_lower):
+                return self._analyze_warehouse_capacity(user_query)
+            
+            # Pattern 3b: Warehouse performance analysis
             elif self._matches_warehouse_pattern(query_lower):
                 return self._analyze_warehouse_performance(user_query)
             
@@ -150,6 +154,22 @@ class EnhancedCSVEngine:
             # Pattern 6: Capacity planning
             elif self._matches_capacity_pattern(query_lower):
                 return self._analyze_capacity_impact(user_query)
+            
+            # Feedback sentiment analysis queries
+            elif any(phrase in query_lower for phrase in ['feedback', 'sentiment', 'customer satisfaction', 'reviews']):
+                return self._analyze_feedback_sentiment(user_query)
+            
+            # Delivery partner analysis queries
+            elif any(phrase in query_lower for phrase in ['delivery partner', 'partner performance', 'which partner', 'best partner']):
+                return self._analyze_delivery_partner_performance(user_query)
+            
+            # Driver analysis queries
+            elif any(word in query_lower for word in ['driver', 'drivers']):
+                return self._analyze_driver_query(user_query)
+            
+            # Revenue analysis queries
+            elif any(phrase in query_lower for phrase in ['total revenue', 'revenue for', 'total sales', 'sales revenue']):
+                return self._analyze_revenue_query(user_query)
             
             # General statistical queries
             elif any(word in query_lower for word in ['how many', 'count', 'total', 'average', 'percentage']):
@@ -176,13 +196,42 @@ class EnhancedCSVEngine:
     
     def _matches_city_delay_pattern(self, query: str) -> bool:
         """Check if query matches city delay pattern"""
-        return (any(city.lower() in query for city in self.city_patterns) and 
-                any(word in query for word in ['delay', 'late', 'slow']))
+        # Check if we can extract a city (which handles aliases)
+        city_found = self._extract_city_from_query(query) is not None
+        delay_keywords = any(word in query for word in ['delay', 'late', 'slow'])
+        return city_found and delay_keywords
     
     def _matches_client_failure_pattern(self, query: str) -> bool:
         """Check if query matches client failure pattern"""
-        return (('client' in query or any(client.lower() in query for client in self.client_patterns)) and
-                any(word in query for word in ['fail', 'issue', 'problem']))
+        query_lower = query.lower()
+        
+        # Exclude warehouse-related queries first
+        if 'warehouse' in query_lower:
+            return False
+        
+        # Check for ranking queries first (which clients, top clients, etc.)
+        ranking_phrases = ['which clients', 'top clients', 'most failures', 'highest failures', 'worst performing', 'most order failures', 'highest failure rates']
+        # More specific patterns that clearly indicate client ranking
+        specific_client_ranking = ['top clients', 'which clients', 'clients with most', 'clients with highest', 'worst performing clients']
+        
+        if any(phrase in query_lower for phrase in specific_client_ranking):
+            return True
+        
+        # For general "top" or "most", ensure it's about clients specifically
+        if any(phrase in query_lower for phrase in ['top', 'most']):
+            # Only match if it's clearly about clients and failures
+            if any(word in query_lower for word in ['clients', 'client']) and any(word in query_lower for word in ['fail', 'failure']):
+                return True
+        
+        # Check if we can extract a specific client (which handles partial matches)
+        client_found = self._extract_client_from_query(query) is not None
+        failure_keywords = any(word in query for word in ['fail', 'issue', 'problem', 'failure'])
+        return client_found and failure_keywords
+    
+    def _matches_warehouse_capacity_pattern(self, query: str) -> bool:
+        """Check if query matches warehouse capacity pattern"""
+        return (('warehouse' in query or any(warehouse.lower() in query for warehouse in self.warehouse_patterns)) and
+                any(word in query for word in ['capacity', 'total capacity', 'sum of capacity', 'total']))
     
     def _matches_warehouse_pattern(self, query: str) -> bool:
         """Check if query matches warehouse pattern"""
@@ -213,7 +262,9 @@ class EnhancedCSVEngine:
     
     def _matches_capacity_pattern(self, query: str) -> bool:
         """Check if query matches capacity pattern"""
-        return any(word in query for word in ['onboard', 'capacity', 'extra orders', 'volume', 'scale'])
+        capacity_keywords = ['onboard', 'capacity', 'extra orders', 'volume', 'scale', 'expand', 'expansion', 
+                           'infrastructure', 'monthly orders', 'new orders', 'additional orders', 'growth']
+        return any(word in query.lower() for word in capacity_keywords)
     
     def _analyze_city_delays(self, user_query: str) -> Dict[str, Any]:
         """Analyze delivery delays for a specific city"""
@@ -228,9 +279,19 @@ class EnhancedCSVEngine:
         orders_df = self.dataframes['orders']
         city_orders = orders_df[orders_df['city'].str.contains(city, case=False, na=False)]
         
-        # Apply time filter
+        # Apply time filter - ALWAYS filter by time period if specified
         if time_period:
             city_orders = self._apply_time_filter(city_orders, time_period)
+            time_context = f" in {time_period}"
+        else:
+            # If no specific time mentioned, use recent data (last 3 months) for more relevant analysis
+            if 'order_date' in city_orders.columns:
+                from datetime import datetime, timedelta
+                recent_cutoff = datetime.now() - timedelta(days=90)  # Last 3 months
+                city_orders = city_orders[city_orders['order_date'] >= recent_cutoff]
+                time_context = " (recent 3 months)"
+            else:
+                time_context = ""
         
         # Analyze delays (Failed and delayed orders)
         delayed_orders = city_orders[city_orders['status'].isin(['Failed', 'Returned'])]
@@ -246,7 +307,7 @@ class EnhancedCSVEngine:
         delayed_count = len(delayed_orders)
         delay_rate = (delayed_count / total_orders * 100) if total_orders > 0 else 0
         
-        explanation = f"""## 📊 City Delay Analysis - {city}
+        explanation = f"""## 📊 City Delay Analysis - {city}{time_context}
 
 **Executive Summary:**
 • Total orders analyzed: {total_orders:,}
@@ -265,15 +326,15 @@ class EnhancedCSVEngine:
 ## 🔍 Data Analysis Details
 
 **Query Processing:**
-• Analyzed {total_orders:,} orders from {city}
-• Time period: {time_period or 'All available data'}
+• Analyzed {total_orders:,} orders from {city}{time_context}
+• Time period: {time_period or 'Recent data (filtered)'}
 • Data sources: orders.csv, external_factors.csv
 • Analysis confidence: 100% (Direct CSV analysis)
 
 **Statistical Breakdown:**
 • Success rate: {100-delay_rate:.1f}%
 • Average order value: ${city_orders['amount'].mean():.2f}
-• Peak failure day: {delayed_orders.groupby(delayed_orders['order_date'].dt.day_name())['order_id'].count().idxmax() if len(delayed_orders) > 0 else 'N/A'}"""
+• Peak failure day: {delayed_orders.groupby(delayed_orders['order_date'].dt.day_name())['order_id'].count().idxmax() if len(delayed_orders) > 0 and 'order_date' in delayed_orders.columns else 'N/A'}"""
         
         return {
             'success': True,
@@ -286,7 +347,14 @@ class EnhancedCSVEngine:
         }
     
     def _analyze_client_failures(self, user_query: str) -> Dict[str, Any]:
-        """Analyze order failures for a specific client"""
+        """Analyze order failures for a specific client or rank clients by failures"""
+        query_lower = user_query.lower()
+        
+        # Check if this is a ranking query (which clients, top clients, most failures, etc.)
+        if any(phrase in query_lower for phrase in ['which clients', 'top clients', 'most failures', 'highest failures', 'worst performing', 'most order failures', 'highest failure rates', 'top', 'most']):
+            return self._analyze_client_failure_ranking(user_query)
+        
+        # Otherwise, look for specific client
         client = self._extract_client_from_query(user_query)
         time_period = self._extract_time_period(user_query)
         
@@ -307,9 +375,19 @@ class EnhancedCSVEngine:
         orders_df = self.dataframes['orders']
         client_orders = orders_df[orders_df['client_id'] == client_id]
         
-        # Apply time filter
+        # Apply time filter - ALWAYS filter by time period if specified
         if time_period:
             client_orders = self._apply_time_filter(client_orders, time_period)
+            time_context = f" ({time_period})"
+        else:
+            # If no specific time mentioned, use recent data for more relevant analysis
+            if 'order_date' in client_orders.columns:
+                from datetime import datetime, timedelta
+                recent_cutoff = datetime.now() - timedelta(days=90)  # Last 3 months
+                client_orders = client_orders[client_orders['order_date'] >= recent_cutoff]
+                time_context = " (recent 3 months)"
+            else:
+                time_context = ""
         
         # Analyze failures
         failed_orders = client_orders[client_orders['status'] == 'Failed']
@@ -320,14 +398,14 @@ class EnhancedCSVEngine:
         failed_count = len(failed_orders)
         failure_rate = (failed_count / total_orders * 100) if total_orders > 0 else 0
         
-        explanation = f"""## 📊 Client Failure Analysis - {client_name}
+        explanation = f"""## 📊 Client Failure Analysis - {client_name}{time_context}
 
 **Client Profile:**
 • Client ID: {client_id}
 • Contact: {client_info.iloc[0]['contact_person']} ({client_info.iloc[0]['contact_phone']})
 • Location: {client_info.iloc[0]['city']}, {client_info.iloc[0]['state']}
 
-**Performance Summary:**
+**Performance Summary{time_context}:**
 • Total orders: {total_orders:,}
 • Failed orders: {failed_count:,} ({failure_rate:.1f}%)
 • Revenue at risk: ${failed_orders['amount'].sum():.2f}
@@ -341,8 +419,8 @@ class EnhancedCSVEngine:
 ## 🔍 Data Analysis Details
 
 **Analysis Scope:**
-• Time period: {time_period or 'All available data'}
-• Orders analyzed: {total_orders:,}
+• Time period: {time_period or 'Recent data (filtered)'}
+• Orders analyzed: {total_orders:,}{time_context}
 • Data sources: orders.csv, clients.csv
 • Client match confidence: 100%
 
@@ -359,6 +437,114 @@ class EnhancedCSVEngine:
             'confidence': '100%'
         }
     
+    def _analyze_client_failure_ranking(self, user_query: str) -> Dict[str, Any]:
+        """Analyze and rank clients by failure count"""
+        time_period = self._extract_time_period(user_query)
+        
+        # Extract number of results requested (default to 10)
+        requested_count = self._extract_number_from_query(user_query)
+        if requested_count is None or requested_count > 50:  # Cap at 50 for performance
+            requested_count = 10
+        elif requested_count < 1:
+            requested_count = 5
+        
+        # Get orders data
+        orders_df = self.dataframes['orders']
+        clients_df = self.dataframes['clients']
+        
+        # Apply time filter if specified
+        if time_period:
+            orders_df = self._apply_time_filter(orders_df, time_period)
+            time_context = f" ({time_period})"
+        else:
+            # If no specific time mentioned, use recent data for more relevant analysis
+            if 'order_date' in orders_df.columns:
+                from datetime import datetime, timedelta
+                recent_cutoff = datetime.now() - timedelta(days=90)  # Last 3 months
+                orders_df = orders_df[orders_df['order_date'] >= recent_cutoff]
+                time_context = " (recent 3 months)"
+            else:
+                time_context = ""
+        
+        # Get failed orders only
+        failed_orders = orders_df[orders_df['status'] == 'Failed']
+        
+        if len(failed_orders) == 0:
+            return {
+                'success': True,
+                'query': user_query,
+                'explanation': f"## 📊 Client Failure Ranking{time_context}\n\nNo failed orders found for the specified period.",
+                'result_count': 0
+            }
+        
+        # Count failures by client
+        client_failures = failed_orders.groupby('client_id').agg({
+            'order_id': 'count',
+            'amount': 'sum'
+        }).reset_index()
+        client_failures.columns = ['client_id', 'failure_count', 'lost_revenue']
+        
+        # Merge with client names
+        client_failures = client_failures.merge(
+            clients_df[['client_id', 'client_name', 'city', 'state']], 
+            on='client_id', 
+            how='left'
+        )
+        
+        # Sort by failure count (descending)
+        client_failures = client_failures.sort_values('failure_count', ascending=False)
+        
+        # Get top N clients with most failures
+        top_failures = client_failures.head(requested_count)
+        
+        # Calculate total failures and revenue impact
+        total_failures = int(client_failures['failure_count'].sum())
+        total_lost_revenue = float(client_failures['lost_revenue'].sum())
+        
+        # Build explanation
+        explanation = f"""## 📊 Client Failure Ranking{time_context}
+
+**📈 Top {requested_count} Clients with Most Order Failures:**"""
+        
+        for rank, (i, row) in enumerate(top_failures.iterrows(), 1):
+            client_name = row['client_name']
+            failure_count = int(row['failure_count'])
+            lost_revenue = float(row['lost_revenue'])
+            city = row['city']
+            state = row['state']
+            
+            percentage = (failure_count / total_failures * 100) if total_failures > 0 else 0
+            
+            explanation += f"""
+
+**{rank}. {client_name}**
+• Failed orders: {failure_count:,} ({percentage:.1f}% of all failures)
+• Lost revenue: ${lost_revenue:,.2f}
+• Location: {city}, {state}"""
+        
+        explanation += f"""
+
+**📊 Summary Statistics:**
+• Total failed orders: {total_failures:,}
+• Total lost revenue: ${total_lost_revenue:,.2f}
+• Clients with failures: {len(client_failures):,}
+• Average failures per client: {(total_failures / len(client_failures)):.1f}"""
+        
+        return {
+            'success': True,
+            'query': user_query,
+            'explanation': explanation,
+            'result_count': int(len(top_failures)),
+            'data_summary': {
+                'total_failures': int(total_failures),
+                'total_lost_revenue': float(total_lost_revenue),
+                'top_clients': top_failures.to_dict('records')
+            },
+            'analysis_type': 'client_failure_ranking',
+            'data_source': 'orders.csv + clients.csv',
+            'confidence': '95%'
+        }
+
     def _analyze_warehouse_performance(self, user_query: str) -> Dict[str, Any]:
         """Analyze warehouse performance and failure reasons"""
         warehouse = self._extract_warehouse_from_query(user_query)
@@ -434,6 +620,129 @@ class EnhancedCSVEngine:
             'analysis_method': 'Warehouse operational analysis',
             'confidence': '100%'
         }
+    
+    def _analyze_warehouse_capacity(self, user_query: str) -> Dict[str, Any]:
+        """Analyze warehouse capacity by state/city"""
+        try:
+            warehouses_df = self.dataframes['warehouses']
+            query_lower = user_query.lower()
+            
+            # Extract state or city from query
+            state_name = None
+            city_name = None
+            
+            # Check for state names
+            states = warehouses_df['state'].unique()
+            for state in states:
+                if state.lower() in query_lower:
+                    state_name = state
+                    break
+            
+            # Check for city names
+            cities = warehouses_df['city'].unique()
+            for city in cities:
+                if city.lower() in query_lower:
+                    city_name = city
+                    break
+            
+            if state_name:
+                # State-level analysis
+                state_warehouses = warehouses_df[warehouses_df['state'] == state_name]
+                total_capacity = int(state_warehouses['capacity'].sum())
+                warehouse_count = len(state_warehouses)
+                avg_capacity = float(state_warehouses['capacity'].mean())
+                
+                explanation = f"""🏭 **Warehouse Capacity Analysis for {state_name}**
+
+📊 **Total Capacity**: {total_capacity:,} units
+🏢 **Number of Warehouses**: {warehouse_count}
+📈 **Average Capacity**: {avg_capacity:.2f} units per warehouse
+
+🏙️ **City-wise Breakdown:**"""
+                
+                for city in state_warehouses['city'].unique():
+                    city_data = state_warehouses[state_warehouses['city'] == city]
+                    city_capacity = int(city_data['capacity'].sum())
+                    city_count = len(city_data)
+                    explanation += f"\n• **{city}**: {city_capacity:,} units ({city_count} warehouses)"
+                
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': explanation,
+                    'result_count': total_capacity,
+                    'analysis_type': 'warehouse_capacity',
+                    'data_source': 'warehouses.csv',
+                    'confidence': '100%'
+                }
+                
+            elif city_name:
+                # City-level analysis
+                city_warehouses = warehouses_df[warehouses_df['city'] == city_name]
+                total_capacity = int(city_warehouses['capacity'].sum())
+                warehouse_count = len(city_warehouses)
+                avg_capacity = float(city_warehouses['capacity'].mean())
+                
+                explanation = f"""🏭 **Warehouse Capacity Analysis for {city_name}**
+
+📊 **Total Capacity**: {total_capacity:,} units
+🏢 **Number of Warehouses**: {warehouse_count}
+📈 **Average Capacity**: {avg_capacity:.2f} units per warehouse
+
+📋 **Individual Warehouses:**"""
+                
+                for _, warehouse in city_warehouses.iterrows():
+                    capacity = int(warehouse['capacity'])
+                    explanation += f"\n• {warehouse['warehouse_name']}: {capacity:,} units (Manager: {warehouse['manager_name']})"
+                
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': explanation,
+                    'result_count': total_capacity,
+                    'analysis_type': 'warehouse_capacity',
+                    'data_source': 'warehouses.csv',
+                    'confidence': '100%'
+                }
+            
+            else:
+                # Overall capacity analysis
+                total_capacity = int(warehouses_df['capacity'].sum())
+                warehouse_count = len(warehouses_df)
+                avg_capacity = float(warehouses_df['capacity'].mean())
+                
+                explanation = f"""🏭 **Overall Warehouse Capacity Analysis**
+
+📊 **Total System Capacity**: {total_capacity:,} units
+🏢 **Total Warehouses**: {warehouse_count}
+📈 **Average Capacity**: {avg_capacity:.2f} units per warehouse
+
+🗺️ **State-wise Breakdown:**"""
+                
+                for state in warehouses_df['state'].unique():
+                    state_data = warehouses_df[warehouses_df['state'] == state]
+                    state_capacity = int(state_data['capacity'].sum())
+                    state_count = len(state_data)
+                    explanation += f"\n• **{state}**: {state_capacity:,} units ({state_count} warehouses)"
+                
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': explanation,
+                    'result_count': total_capacity,
+                    'analysis_type': 'warehouse_capacity',
+                    'data_source': 'warehouses.csv',
+                    'confidence': '100%'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in warehouse capacity analysis: {e}")
+            return {
+                'success': False,
+                'query': user_query,
+                'error': f"Error analyzing warehouse capacity: {str(e)}",
+                'result_count': 0
+            }
     
     def _compare_cities(self, user_query: str) -> Dict[str, Any]:
         """Compare delivery performance between two cities"""
@@ -572,8 +881,9 @@ class EnhancedCSVEngine:
     
     def _analyze_capacity_impact(self, user_query: str) -> Dict[str, Any]:
         """Analyze impact of onboarding new client with extra orders"""
-        # Extract client and order volume from query
+        # Extract client, city, and order volume from query
         client = self._extract_client_from_query(user_query)
+        city = self._extract_city_from_query(user_query)
         extra_orders = self._extract_number_from_query(user_query)
         
         if not extra_orders:
@@ -581,8 +891,60 @@ class EnhancedCSVEngine:
         
         # Current system analysis
         orders_df = self.dataframes['orders']
-        current_monthly_orders = len(orders_df) // 12  # Approximate monthly orders
-        current_failure_rate = len(orders_df[orders_df['status'] == 'Failed']) / len(orders_df) * 100
+        
+        # If city is specified, analyze city-specific capacity
+        if city:
+            city_orders = orders_df[orders_df['city'].str.contains(city, case=False, na=False)]
+            
+            # Calculate realistic monthly baseline using multiple approaches
+            if 'order_date' in city_orders.columns:
+                city_orders['year_month'] = city_orders['order_date'].dt.to_period('M')
+                monthly_counts = city_orders.groupby('year_month').size()
+                
+                if len(monthly_counts) > 0:
+                    # Use average monthly orders for capacity planning
+                    avg_monthly_orders = int(monthly_counts.mean())
+                    
+                    # Get recent trend (last 3 months if available)
+                    recent_months = monthly_counts.tail(3)
+                    recent_avg = int(recent_months.mean()) if len(recent_months) > 0 else avg_monthly_orders
+                    
+                    # Use recent trend if significantly different, otherwise use overall average
+                    if abs(recent_avg - avg_monthly_orders) > avg_monthly_orders * 0.2:  # 20% difference threshold
+                        current_monthly_orders = recent_avg
+                        time_period = f"recent trend ({len(recent_months)} months avg)"
+                        trend_note = f" (trending from {avg_monthly_orders} overall avg)"
+                    else:
+                        current_monthly_orders = avg_monthly_orders
+                        time_period = f"monthly average ({len(monthly_counts)} months)"
+                        trend_note = ""
+                    
+                    # For failure rate, use overall city data for better statistical significance
+                    monthly_orders_for_failure_rate = city_orders
+                    
+                else:
+                    current_monthly_orders = len(city_orders) // 12
+                    monthly_orders_for_failure_rate = city_orders
+                    time_period = "estimated monthly average"
+                    trend_note = ""
+            else:
+                current_monthly_orders = len(city_orders) // 12
+                monthly_orders_for_failure_rate = city_orders
+                time_period = "estimated monthly average"
+                trend_note = ""
+            
+            current_failure_rate = len(monthly_orders_for_failure_rate[monthly_orders_for_failure_rate['status'] == 'Failed']) / len(monthly_orders_for_failure_rate) * 100 if len(monthly_orders_for_failure_rate) > 0 else 0
+            analysis_scope = f"{city} city ({time_period}){trend_note}"
+        else:
+            # Global analysis if no city specified - use monthly average
+            if 'order_date' in orders_df.columns:
+                orders_df['year_month'] = orders_df['order_date'].dt.to_period('M')
+                monthly_counts = orders_df.groupby('year_month').size()
+                current_monthly_orders = int(monthly_counts.mean()) if len(monthly_counts) > 0 else len(orders_df) // 12
+            else:
+                current_monthly_orders = len(orders_df) // 12
+            current_failure_rate = len(orders_df[orders_df['status'] == 'Failed']) / len(orders_df) * 100
+            analysis_scope = "overall system (monthly average)"
         
         # Capacity analysis
         warehouses_df = self.dataframes['warehouses']
@@ -597,10 +959,10 @@ class EnhancedCSVEngine:
         additional_drivers_needed = max(1, extra_orders // 1000)  # Rough estimate
         additional_warehouses_needed = 1 if new_utilization > 85 else 0
         
-        explanation = f"""## 📈 Capacity Impact Analysis - {extra_orders:,} Extra Monthly Orders
+        explanation = f"""## 📈 Capacity Impact Analysis - {city if city else 'System'} + {extra_orders:,} Extra Monthly Orders
 
-**Current System Status:**
-• Current monthly orders: {current_monthly_orders:,}
+**Current {analysis_scope.title()} Status:**
+• Current monthly orders: {current_monthly_orders:,} {'(city-specific)' if city else '(system-wide)'}
 • Current failure rate: {current_failure_rate:.1f}%
 • Warehouse utilization: {current_utilization:.1f}%
 • Total warehouse capacity: {total_warehouse_capacity:,} units
@@ -621,20 +983,22 @@ class EnhancedCSVEngine:
 • System bottlenecks: {self._identify_bottlenecks(new_utilization)}
 • Failure risk increase: {projected_failure_increase:.1f} percentage points
 
-**Mitigation Strategy:**
+**{city + ' ' if city else ''}Mitigation Strategy:**
 • Phase rollout over 3-6 months
-• Increase warehouse capacity by {max(10, int(projected_failure_increase * 5))}%
-• Hire {additional_drivers_needed} additional drivers
+• {'Focus on ' + city + ' warehouse capacity' if city else 'Increase warehouse capacity by ' + str(max(10, int(projected_failure_increase * 5))) + '%'}
+• Hire {additional_drivers_needed} additional drivers {'in ' + city + ' region' if city else 'across regions'}
 • Implement load balancing across warehouses
 
 ---
 
 ## 🔍 Predictive Analysis
 
+**Analysis Scope:** {analysis_scope.title()}
 **Historical Volume Correlation:**
 • Past volume increases show {projected_failure_increase:.1f}% failure rate increase per 10k orders
 • Peak capacity threshold: {total_warehouse_capacity * 0.85:.0f} orders/month
-• Recommended max utilization: 80% ({total_warehouse_capacity * 0.8:.0f} orders/month)"""
+• Recommended max utilization: 80% ({total_warehouse_capacity * 0.8:.0f} orders/month)
+{f'• {city} current market share: {current_monthly_orders/len(orders_df)*100:.1f}% of total orders' if city else ''}"""
         
         return {
             'success': True,
@@ -649,29 +1013,81 @@ class EnhancedCSVEngine:
     # Helper methods for query processing
     def _extract_city_from_query(self, query: str) -> Optional[str]:
         """Extract city name from query"""
+        import re
         query_lower = query.lower()
+        
+        # Define city aliases for common name variations
+        city_aliases = {
+            'bangalore': 'Bengaluru',
+            'bengaluru': 'Bengaluru',
+            'mumbai': 'Mumbai',
+            'bombay': 'Mumbai',
+            'delhi': 'New Delhi',
+            'new delhi': 'New Delhi',
+            'chennai': 'Chennai',
+            'madras': 'Chennai'
+        }
+        
+        # First check for exact city names in our data (prioritize explicit mentions)
         for city in self.city_patterns:
-            if city.lower() in query_lower:
+            # Use word boundaries to avoid substring matches
+            pattern = r'\b' + re.escape(city.lower()) + r'\b'
+            if re.search(pattern, query_lower):
                 return city
+        
+        # Then check for aliases with word boundaries
+        for alias, actual_city in city_aliases.items():
+            # Use word boundaries to avoid substring matches (e.g., "delhi" in "delhivery")
+            pattern = r'\b' + re.escape(alias) + r'\b'
+            if re.search(pattern, query_lower):
+                # Verify the actual city exists in our data
+                if actual_city in self.city_patterns:
+                    return actual_city
+        
         return None
     
     def _extract_client_from_query(self, query: str) -> Optional[str]:
         """Extract client name from query"""
         query_lower = query.lower()
         
-        # Look for specific client names
+        # Look for specific client names (exact matches first)
         for client in self.client_patterns:
             if client.lower() in query_lower:
                 return client
         
-        # Look for generic patterns like "Client X"
+        # Look for partial matches by company base name
+        # Extract base company names (before Inc, LLC, Group, etc.)
         import re
-        patterns = [
-            r'client\s+([A-Za-z]+(?:\s+(?:Inc|LLC|Group|PLC))?)',
-            r'([A-Za-z]+)\s+(?:Inc|LLC|Group|PLC)',
+        
+        # First try to extract company name from query
+        query_patterns = [
+            r'([A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(?:Inc|LLC|Group|PLC|Ltd)',  # "Saini Group" -> "Saini"
+            r'([A-Za-z]+)(?:\'s|\s+orders|\s+order)',  # "Saini's orders" -> "Saini"
         ]
         
-        for pattern in patterns:
+        extracted_name = None
+        for pattern in query_patterns:
+            match = re.search(pattern, query, re.IGNORECASE)
+            if match:
+                extracted_name = match.group(1).strip()
+                break
+        
+        # If we extracted a name, try to find matching clients
+        if extracted_name:
+            extracted_lower = extracted_name.lower()
+            # Look for clients that contain this base name
+            for client in self.client_patterns:
+                client_lower = client.lower()
+                # Check if the extracted name is part of the client name
+                if extracted_lower in client_lower or any(word in client_lower for word in extracted_lower.split()):
+                    return client
+        
+        # Look for generic patterns like "Client X"
+        fallback_patterns = [
+            r'client\s+([A-Za-z]+(?:\s+(?:Inc|LLC|Group|PLC))?)',
+        ]
+        
+        for pattern in fallback_patterns:
             match = re.search(pattern, query, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
@@ -682,21 +1098,31 @@ class EnhancedCSVEngine:
         """Extract warehouse name from query"""
         query_lower = query.lower()
         
-        # Look for specific warehouse names
+        # Look for specific warehouse names first (exact word matching to avoid substring issues)
+        import re
         for warehouse in self.warehouse_patterns:
-            if warehouse.lower() in query_lower:
+            # Use word boundary matching to avoid "Warehouse 2" matching "warehouse 27"
+            pattern = r'\b' + re.escape(warehouse.lower()) + r'\b'
+            if re.search(pattern, query_lower):
                 return warehouse
         
-        # Look for generic patterns like "Warehouse X"
+        # Look for generic patterns like "Warehouse X" or "Warehouse XX"
         import re
-        match = re.search(r'warehouse\s+([A-Za-z0-9]+)', query, re.IGNORECASE)
+        match = re.search(r'warehouse\s+(\d+)', query, re.IGNORECASE)
         if match:
-            warehouse_id = match.group(1)
-            # Try to find by ID or name pattern
+            warehouse_num = int(match.group(1))  # Convert to int for exact matching
+            # Try to find by ID
             warehouses_df = self.dataframes['warehouses']
+            
+            # First try exact ID match
+            matching_warehouse = warehouses_df[warehouses_df['warehouse_id'] == warehouse_num]
+            if len(matching_warehouse) > 0:
+                return matching_warehouse.iloc[0]['warehouse_name']
+            
+            # If not found by ID, try to construct warehouse name
+            warehouse_name = f"Warehouse {warehouse_num}"
             for _, row in warehouses_df.iterrows():
-                if (str(warehouse_id).lower() in str(row['warehouse_name']).lower() or 
-                    str(warehouse_id) == str(row['warehouse_id'])):
+                if warehouse_name.lower() == str(row['warehouse_name']).lower():
                     return row['warehouse_name']
         
         return None
@@ -711,19 +1137,34 @@ class EnhancedCSVEngine:
             return 'last_week'
         elif 'last month' in query_lower or 'past month' in query_lower:
             return 'last_month'
-        elif 'august' in query_lower:
-            return 'august'
         elif 'this month' in query_lower:
             return 'this_month'
+        elif 'august' in query_lower:
+            return 'august'
+        elif 'today' in query_lower:
+            return 'today'
+        elif 'this week' in query_lower:
+            return 'this_week'
         
         return None
     
     def _extract_number_from_query(self, query: str) -> Optional[int]:
         """Extract number from query"""
         import re
+        
+        # Look for numbers with commas first (e.g., "20,000")
+        comma_numbers = re.findall(r'\d{1,3}(?:,\d{3})+', query)
+        if comma_numbers:
+            # Remove commas and convert to int
+            return int(comma_numbers[0].replace(',', ''))
+        
+        # Look for regular numbers (prioritize larger numbers)
         numbers = re.findall(r'\d+', query)
         if numbers:
-            return int(numbers[0])
+            # Convert to integers and return the largest one
+            int_numbers = [int(n) for n in numbers]
+            return max(int_numbers)
+        
         return None
     
     def _apply_time_filter(self, df: pd.DataFrame, time_period: str, date_col: str = 'order_date') -> pd.DataFrame:
@@ -734,19 +1175,31 @@ class EnhancedCSVEngine:
         now = datetime.now()
         
         if time_period == 'yesterday':
-            # For demo data, use last 30 days instead of yesterday
-            start_date = now - timedelta(days=30)
+            # For demo data, use last 7 days instead of yesterday
+            start_date = now - timedelta(days=7)
+            end_date = now
+        elif time_period == 'today':
+            # Use last 3 days for demo data
+            start_date = now - timedelta(days=3)
+            end_date = now
+        elif time_period == 'this_week':
+            # Current week
+            start_date = now - timedelta(days=7)
             end_date = now
         elif time_period == 'last_week':
-            # Use last 60 days for demo data
-            start_date = now - timedelta(days=60)
-            end_date = now
+            # Previous week
+            start_date = now - timedelta(days=14)
+            end_date = now - timedelta(days=7)
+        elif time_period == 'this_month':
+            # Current month - use September 2025 data
+            start_date = datetime(2025, 9, 1)
+            end_date = datetime(2025, 9, 30)
         elif time_period == 'last_month':
-            # Use last 90 days for demo data
-            start_date = now - timedelta(days=90)
-            end_date = now
+            # Previous month - use August 2025 data
+            start_date = datetime(2025, 8, 1)
+            end_date = datetime(2025, 8, 31)
         elif time_period == 'august':
-            # Use 2025 August for demo data
+            # Specific August 2025
             start_date = datetime(2025, 8, 1)
             end_date = datetime(2025, 8, 31)
         else:
@@ -841,15 +1294,653 @@ class EnhancedCSVEngine:
             'confidence': '50%'
         }
     
+    def _analyze_feedback_sentiment(self, user_query: str) -> Dict[str, Any]:
+        """Analyze feedback sentiment with temporal breakdowns"""
+        try:
+            # Get required dataframes
+            feedback_df = self.dataframes['feedback']
+            orders_df = self.dataframes['orders']
+            
+            # Merge feedback with orders to get delivery status
+            feedback_with_orders = feedback_df.merge(orders_df, on='order_id', how='left', suffixes=('_feedback', '_order'))
+            
+            # Filter for delivered orders only
+            delivered_feedback = feedback_with_orders[feedback_with_orders['status'] == 'Delivered'].copy()
+            
+            if len(delivered_feedback) == 0:
+                return {
+                    'success': False,
+                    'error': 'No feedback data available for delivered orders'
+                }
+            
+            # Convert date columns (use feedback created_at)
+            delivered_feedback['feedback_date'] = pd.to_datetime(delivered_feedback['created_at_feedback'])
+            delivered_feedback['year_month'] = delivered_feedback['feedback_date'].dt.to_period('M')
+            delivered_feedback['year_week'] = delivered_feedback['feedback_date'].dt.to_period('W')
+            delivered_feedback['date'] = delivered_feedback['feedback_date'].dt.date
+            
+            # Check for specific question types first
+            query_lower = user_query.lower()
+            
+            # Handle specific count questions
+            if any(phrase in query_lower for phrase in ['how many negative', 'count negative', 'number of negative']):
+                negative_count = len(delivered_feedback[delivered_feedback['sentiment'] == 'Negative'])
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': f"## 📊 Negative Feedback Count\n\n**Total Negative Feedbacks**: {negative_count:,} (from delivered orders)\n\nThis represents {(negative_count/len(delivered_feedback)*100):.1f}% of all feedback from delivered orders.",
+                    'result_count': negative_count
+                }
+            
+            if any(phrase in query_lower for phrase in ['how many positive', 'count positive', 'number of positive']):
+                positive_count = len(delivered_feedback[delivered_feedback['sentiment'] == 'Positive'])
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': f"## 📊 Positive Feedback Count\n\n**Total Positive Feedbacks**: {positive_count:,} (from delivered orders)\n\nThis represents {(positive_count/len(delivered_feedback)*100):.1f}% of all feedback from delivered orders.",
+                    'result_count': positive_count
+                }
+            
+            # Handle most common feedback questions
+            if any(phrase in query_lower for phrase in ['most common feedback', 'common feedback', 'frequent feedback']):
+                feedback_counts = delivered_feedback['feedback_text'].value_counts().head(10)
+                explanation = f"""## 📝 Most Common Customer Feedback
+
+**Top 10 Most Frequent Feedback Messages:**"""
+                
+                for i, (feedback, count) in enumerate(feedback_counts.items(), 1):
+                    percentage = (count / len(delivered_feedback) * 100)
+                    explanation += f"\n{i}. \"{feedback}\" - {count:,} times ({percentage:.1f}%)"
+                
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': explanation,
+                    'result_count': len(feedback_counts)
+                }
+            
+            # Handle average rating questions
+            if any(phrase in query_lower for phrase in ['average rating', 'avg rating', 'mean rating']):
+                avg_rating = float(delivered_feedback['rating'].mean())
+                rating_dist = delivered_feedback['rating'].value_counts().sort_index()
+                
+                explanation = f"""## ⭐ Average Customer Rating
+
+**Overall Average Rating**: {avg_rating:.2f}/5.0
+
+**Rating Distribution:**"""
+                
+                for rating, count in rating_dist.items():
+                    percentage = (count / len(delivered_feedback) * 100)
+                    stars = "⭐" * int(rating)
+                    explanation += f"\n• {stars} ({rating}): {count:,} ({percentage:.1f}%)"
+                
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': explanation,
+                    'result_count': int(len(delivered_feedback))
+                }
+            
+            # Handle total feedback count questions
+            if any(phrase in query_lower for phrase in ['total feedback', 'how many feedback', 'count feedback', 'number of feedback']):
+                total_count = len(delivered_feedback)
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': f"## 📊 Total Feedback Count\n\n**Total Feedbacks**: {total_count:,} (from delivered orders only)\n\nThis includes feedback from all successfully delivered orders in our system.",
+                    'result_count': total_count
+                }
+            
+            # Extract specific time period from query
+            time_period = self._extract_time_period(user_query)
+            
+            # Apply time filter if specific period mentioned
+            if time_period:
+                delivered_feedback = self._apply_time_filter(delivered_feedback, time_period, 'feedback_date')
+                if len(delivered_feedback) == 0:
+                    return {
+                        'success': True,
+                        'query': user_query,
+                        'explanation': f"## 📝 Feedback Sentiment Analysis\n\nNo feedback data found for {time_period}. Please try a different time period.",
+                        'result_count': 0
+                    }
+            
+            # Determine analysis period from query
+            analysis_period = 'monthly'  # default
+            if 'weekly' in user_query.lower() or 'week' in user_query.lower():
+                analysis_period = 'weekly'
+            elif 'daily' in user_query.lower() or 'day' in user_query.lower():
+                analysis_period = 'daily'
+            
+            # Overall sentiment analysis
+            total_feedback = len(delivered_feedback)
+            sentiment_counts = delivered_feedback['sentiment'].value_counts()
+            rating_avg = float(delivered_feedback['rating'].mean())
+            
+            # Sentiment distribution
+            positive_count = sentiment_counts.get('Positive', 0)
+            negative_count = sentiment_counts.get('Negative', 0)
+            neutral_count = sentiment_counts.get('Neutral', 0)
+            
+            positive_pct = (positive_count / total_feedback * 100) if total_feedback > 0 else 0
+            negative_pct = (negative_count / total_feedback * 100) if total_feedback > 0 else 0
+            neutral_pct = (neutral_count / total_feedback * 100) if total_feedback > 0 else 0
+            
+            # Temporal analysis
+            if analysis_period == 'monthly':
+                temporal_data = delivered_feedback.groupby('year_month').agg({
+                    'sentiment': lambda x: x.value_counts().to_dict(),
+                    'rating': 'mean',
+                    'feedback_id': 'count'
+                }).reset_index()
+                temporal_data['year_month'] = temporal_data['year_month'].astype(str)
+                period_label = "Monthly"
+                
+            elif analysis_period == 'weekly':
+                temporal_data = delivered_feedback.groupby('year_week').agg({
+                    'sentiment': lambda x: x.value_counts().to_dict(),
+                    'rating': 'mean',
+                    'feedback_id': 'count'
+                }).reset_index()
+                temporal_data['year_week'] = temporal_data['year_week'].astype(str)
+                period_label = "Weekly"
+                
+            else:  # daily
+                # Get last 30 days for daily analysis
+                recent_date = delivered_feedback['feedback_date'].max()
+                thirty_days_ago = recent_date - pd.Timedelta(days=30)
+                recent_feedback = delivered_feedback[delivered_feedback['feedback_date'] >= thirty_days_ago]
+                
+                temporal_data = recent_feedback.groupby('date').agg({
+                    'sentiment': lambda x: x.value_counts().to_dict(),
+                    'rating': 'mean',
+                    'feedback_id': 'count'
+                }).reset_index()
+                temporal_data['date'] = temporal_data['date'].astype(str)
+                period_label = "Daily (Last 30 Days)"
+            
+            # Get sample feedback by sentiment
+            positive_samples = delivered_feedback[delivered_feedback['sentiment'] == 'Positive']['feedback_text'].dropna().head(3).tolist()
+            negative_samples = delivered_feedback[delivered_feedback['sentiment'] == 'Negative']['feedback_text'].dropna().head(3).tolist()
+            
+            # Build explanation with time period context
+            time_context = f" - {time_period}" if time_period else ""
+            explanation = f"""## 📝 {period_label} Feedback Sentiment Analysis{time_context}
+
+**📊 Overall Sentiment Summary:**
+• Total feedback analyzed: {total_feedback:,} (delivered orders only)
+• Average rating: {rating_avg:.2f}/5.0
+• Positive sentiment: {positive_count:,} ({positive_pct:.1f}%)
+• Negative sentiment: {negative_count:,} ({negative_pct:.1f}%)
+• Neutral sentiment: {neutral_count:,} ({neutral_pct:.1f}%)
+
+**📈 {period_label} Trends:**"""
+            
+            # Add temporal breakdown
+            for _, row in temporal_data.head(10).iterrows():  # Show last 10 periods
+                if analysis_period == 'monthly':
+                    period = row['year_month']
+                elif analysis_period == 'weekly':
+                    period = row['year_week']
+                else:
+                    period = row['date']
+                
+                feedback_count = int(row['feedback_id'])
+                avg_rating = float(row['rating'])
+                sentiment_dist = row['sentiment']
+                
+                pos_count = sentiment_dist.get('Positive', 0)
+                neg_count = sentiment_dist.get('Negative', 0)
+                neu_count = sentiment_dist.get('Neutral', 0)
+                
+                explanation += f"""
+
+**{period}:**
+• Feedback count: {feedback_count:,}
+• Average rating: {avg_rating:.2f}/5.0
+• Sentiment: {pos_count} positive, {neg_count} negative, {neu_count} neutral"""
+            
+            # Add sample feedback
+            explanation += f"""
+
+**💬 Sample Positive Feedback:**"""
+            for i, sample in enumerate(positive_samples, 1):
+                explanation += f"\n{i}. \"{sample}\""
+            
+            explanation += f"""
+
+**⚠️ Sample Negative Feedback:**"""
+            for i, sample in enumerate(negative_samples, 1):
+                explanation += f"\n{i}. \"{sample}\""""
+            
+            # Rating distribution
+            rating_dist = delivered_feedback['rating'].value_counts().sort_index()
+            explanation += f"""
+
+**⭐ Rating Distribution:**"""
+            for rating, count in rating_dist.items():
+                percentage = (count / total_feedback * 100)
+                stars = "⭐" * int(rating)
+                explanation += f"\n• {stars} ({rating}): {count:,} ({percentage:.1f}%)"
+            
+            return {
+                'success': True,
+                'query': user_query,
+                'explanation': explanation,
+                'result_count': int(total_feedback),
+                'data_summary': {
+                    'total_feedback': int(total_feedback),
+                    'average_rating': float(rating_avg),
+                    'sentiment_distribution': {
+                        'positive': int(positive_count),
+                        'negative': int(negative_count),
+                        'neutral': int(neutral_count)
+                    },
+                    'analysis_period': analysis_period,
+                    'temporal_data': temporal_data.to_dict('records') if len(temporal_data) <= 50 else []
+                },
+                'analysis_type': 'feedback_sentiment',
+                'data_source': 'feedback.csv + orders.csv',
+                'confidence': '95%'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in feedback sentiment analysis: {e}")
+            return {
+                'success': False,
+                'query': user_query,
+                'error': f"Error analyzing feedback sentiment: {str(e)}",
+                'result_count': 0
+            }
+
+    def _analyze_revenue_query(self, user_query: str) -> Dict[str, Any]:
+        """Analyze revenue with time period filtering"""
+        try:
+            query_lower = user_query.lower()
+            
+            # Get orders data
+            orders_df = self.dataframes['orders']
+            
+            # Extract time period from query
+            time_period = self._extract_time_period(user_query)
+            
+            # Apply time filter if specified
+            if time_period:
+                orders_df = self._apply_time_filter(orders_df, time_period)
+                time_context = f" ({time_period})"
+            else:
+                time_context = ""
+            
+            # Filter for delivered orders only if specified
+            if any(phrase in query_lower for phrase in ['delivered successfully', 'successful', 'delivered']):
+                filtered_orders = orders_df[orders_df['status'] == 'Delivered']
+                status_filter = "delivered successfully"
+            else:
+                filtered_orders = orders_df
+                status_filter = "all orders"
+            
+            if len(filtered_orders) == 0:
+                return {
+                    'success': True,
+                    'query': user_query,
+                    'explanation': f"## 💰 Revenue Analysis{time_context}\n\nNo {status_filter} found for the specified period.",
+                    'result_count': 0
+                }
+            
+            # Calculate revenue metrics
+            total_revenue = float(filtered_orders['amount'].sum())
+            order_count = len(filtered_orders)
+            avg_order_value = float(filtered_orders['amount'].mean())
+            
+            # Get revenue by status if analyzing all orders
+            if status_filter == "all orders":
+                status_breakdown = filtered_orders.groupby('status')['amount'].agg(['sum', 'count']).reset_index()
+                status_breakdown['sum'] = status_breakdown['sum'].astype(float)
+                status_breakdown['count'] = status_breakdown['count'].astype(int)
+            else:
+                status_breakdown = None
+            
+            # Build explanation
+            explanation = f"""## 💰 Revenue Analysis{time_context}
+
+**📊 Revenue Summary for {status_filter}:**
+• Total revenue: ${total_revenue:,.2f}
+• Total orders: {order_count:,}
+• Average order value: ${avg_order_value:.2f}"""
+            
+            if status_breakdown is not None and len(status_breakdown) > 1:
+                explanation += f"\n\n**📈 Revenue by Order Status:**"
+                for _, row in status_breakdown.iterrows():
+                    status = row['status']
+                    revenue = row['sum']
+                    count = row['count']
+                    percentage = (revenue / total_revenue * 100) if total_revenue > 0 else 0
+                    explanation += f"\n• {status}: ${revenue:,.2f} ({count:,} orders, {percentage:.1f}%)"
+            
+            # Add time period context if filtered
+            if time_period:
+                explanation += f"\n\n**🗓️ Time Period:** {time_period.replace('_', ' ').title()}"
+            
+            return {
+                'success': True,
+                'query': user_query,
+                'explanation': explanation,
+                'result_count': int(order_count),
+                'data_summary': {
+                    'total_revenue': float(total_revenue),
+                    'order_count': int(order_count),
+                    'average_order_value': float(avg_order_value),
+                    'status_filter': status_filter,
+                    'time_period': time_period
+                },
+                'analysis_type': 'revenue_analysis',
+                'data_source': 'orders.csv',
+                'confidence': '100%'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in revenue analysis: {e}")
+            return {
+                'success': False,
+                'query': user_query,
+                'error': f"Error analyzing revenue: {str(e)}",
+                'result_count': 0
+            }
+
+    def _analyze_delivery_partner_performance(self, user_query: str) -> Dict[str, Any]:
+        """Analyze delivery partner performance metrics"""
+        try:
+            # Get required dataframes
+            orders_df = self.dataframes['orders']
+            drivers_df = self.dataframes['drivers']
+            fleet_df = self.dataframes['fleet_logs']
+            
+            # Merge data to get partner information for each order
+            # orders -> fleet_logs -> drivers -> partner_company
+            orders_with_fleet = orders_df.merge(fleet_df, on='order_id', how='left')
+            orders_with_partners = orders_with_fleet.merge(
+                drivers_df[['driver_id', 'partner_company']], 
+                on='driver_id', 
+                how='left'
+            )
+            
+            # Filter out orders without partner information
+            partner_orders = orders_with_partners.dropna(subset=['partner_company'])
+            
+            if len(partner_orders) == 0:
+                return {
+                    'success': False,
+                    'error': 'No delivery partner data available for analysis'
+                }
+            
+            # Calculate performance metrics by partner
+            partner_metrics = []
+            
+            for partner in partner_orders['partner_company'].unique():
+                partner_data = partner_orders[partner_orders['partner_company'] == partner]
+                
+                total_orders = len(partner_data)
+                successful_orders = len(partner_data[partner_data['status'] == 'Delivered'])
+                failed_orders = len(partner_data[partner_data['status'] == 'Failed'])
+                
+                success_rate = (successful_orders / total_orders * 100) if total_orders > 0 else 0
+                failure_rate = (failed_orders / total_orders * 100) if total_orders > 0 else 0
+                
+                # Calculate average delivery time for successful orders
+                delivered_orders = partner_data[partner_data['status'] == 'Delivered'].copy()
+                if len(delivered_orders) > 0:
+                    delivered_orders['order_date'] = pd.to_datetime(delivered_orders['order_date'])
+                    delivered_orders['actual_delivery_date'] = pd.to_datetime(delivered_orders['actual_delivery_date'])
+                    delivered_orders['delivery_days'] = (
+                        delivered_orders['actual_delivery_date'] - delivered_orders['order_date']
+                    ).dt.days
+                    avg_delivery_days = float(delivered_orders['delivery_days'].mean())
+                else:
+                    avg_delivery_days = 0
+                
+                # Calculate revenue
+                total_revenue = float(partner_data['amount'].sum())
+                avg_order_value = float(partner_data['amount'].mean())
+                
+                # Get top failure reasons
+                failure_reasons = partner_data[partner_data['status'] == 'Failed']['failure_reason'].value_counts()
+                top_failure_reason = failure_reasons.index[0] if len(failure_reasons) > 0 else 'N/A'
+                
+                partner_metrics.append({
+                    'partner': partner,
+                    'total_orders': int(total_orders),
+                    'success_rate': float(success_rate),
+                    'failure_rate': float(failure_rate),
+                    'avg_delivery_days': float(avg_delivery_days),
+                    'total_revenue': float(total_revenue),
+                    'avg_order_value': float(avg_order_value),
+                    'top_failure_reason': top_failure_reason
+                })
+            
+            # Sort by success rate (best performance first)
+            partner_metrics.sort(key=lambda x: x['success_rate'], reverse=True)
+            
+            # Build explanation
+            best_partner = partner_metrics[0]
+            
+            explanation = f"""## 🚚 Delivery Partner Performance Analysis
+
+**🏆 Best Performing Partner: {best_partner['partner']}**
+
+**📊 Performance Rankings:**"""
+            
+            for i, partner in enumerate(partner_metrics, 1):
+                rank_emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+                explanation += f"""
+
+{rank_emoji} **{partner['partner']}**
+• Orders handled: {partner['total_orders']:,}
+• Success rate: {partner['success_rate']:.1f}%
+• Average delivery time: {partner['avg_delivery_days']:.1f} days
+• Revenue generated: ${partner['total_revenue']:,.2f}
+• Average order value: ${partner['avg_order_value']:.2f}
+• Main challenge: {partner['top_failure_reason']}"""
+            
+            explanation += f"""
+
+**🎯 Key Insights:**
+• Best success rate: {best_partner['success_rate']:.1f}% ({best_partner['partner']})
+• Fastest delivery: {min(p['avg_delivery_days'] for p in partner_metrics):.1f} days
+• Highest revenue: ${max(p['total_revenue'] for p in partner_metrics):,.2f}
+• Total orders analyzed: {sum(p['total_orders'] for p in partner_metrics):,}"""
+            
+            return {
+                'success': True,
+                'query': user_query,
+                'explanation': explanation,
+                'result_count': len(partner_metrics),
+                'data_summary': {
+                    'best_partner': best_partner['partner'],
+                    'partner_metrics': partner_metrics
+                },
+                'analysis_type': 'delivery_partner_performance',
+                'data_source': 'orders.csv + drivers.csv + fleet_logs.csv',
+                'confidence': '95%'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in delivery partner analysis: {e}")
+            return {
+                'success': False,
+                'query': user_query,
+                'error': f"Error analyzing delivery partner performance: {str(e)}",
+                'result_count': 0
+            }
+
+    def _analyze_driver_query(self, user_query: str) -> Dict[str, Any]:
+        """Analyze driver-related queries"""
+        query_lower = user_query.lower()
+        
+        if 'drivers' not in self.dataframes:
+            return {'success': False, 'error': 'Driver data not available'}
+        
+        drivers_df = self.dataframes['drivers']
+        
+        # Extract filters from query
+        city = self._extract_city_from_query(user_query)
+        state = self._extract_state_from_query(user_query)
+        status = self._extract_status_from_query(user_query)
+        partner = self._extract_partner_from_query(user_query)
+        
+        # Apply filters
+        filtered_drivers = drivers_df.copy()
+        filter_description = []
+        
+        if city:
+            filtered_drivers = filtered_drivers[filtered_drivers['city'].str.contains(city, case=False, na=False)]
+            filter_description.append(f"City: {city}")
+        
+        if state:
+            filtered_drivers = filtered_drivers[filtered_drivers['state'].str.contains(state, case=False, na=False)]
+            filter_description.append(f"State: {state}")
+        
+        if status:
+            filtered_drivers = filtered_drivers[filtered_drivers['status'].str.contains(status, case=False, na=False)]
+            filter_description.append(f"Status: {status}")
+        
+        if partner:
+            filtered_drivers = filtered_drivers[filtered_drivers['partner_company'].str.contains(partner, case=False, na=False)]
+            filter_description.append(f"Partner: {partner}")
+        
+        # Generate analysis
+        total_drivers = len(filtered_drivers)
+        
+        if total_drivers == 0:
+            return {
+                'success': True,
+                'query': user_query,
+                'explanation': f"## 🚗 Driver Analysis\n\nNo drivers found matching the specified criteria: {', '.join(filter_description) if filter_description else 'All drivers'}",
+                'result_count': 0
+            }
+        
+        # Status breakdown
+        status_breakdown = filtered_drivers['status'].value_counts()
+        active_count = status_breakdown.get('Active', 0)
+        inactive_count = status_breakdown.get('Inactive', 0)
+        
+        # City breakdown (top 10)
+        city_breakdown = filtered_drivers['city'].value_counts().head(10)
+        
+        # State breakdown
+        state_breakdown = filtered_drivers['state'].value_counts()
+        
+        # Partner company breakdown (top 10)
+        partner_breakdown = filtered_drivers['partner_company'].value_counts().head(10)
+        
+        # Build explanation
+        filter_text = f" ({', '.join(filter_description)})" if filter_description else ""
+        
+        explanation = f"""## 🚗 Driver Analysis{filter_text}
+
+**Overall Statistics:**
+• Total drivers: {total_drivers:,}
+• Active drivers: {active_count:,} ({(active_count/total_drivers*100):.1f}%)
+• Inactive drivers: {inactive_count:,} ({(inactive_count/total_drivers*100):.1f}%)
+
+**Top Cities:**"""
+        
+        for city_name, count in city_breakdown.items():
+            percentage = (count / total_drivers * 100)
+            explanation += f"\n• {city_name}: {count:,} drivers ({percentage:.1f}%)"
+        
+        explanation += f"\n\n**State Distribution:**"
+        for state_name, count in state_breakdown.items():
+            percentage = (count / total_drivers * 100)
+            explanation += f"\n• {state_name}: {count:,} drivers ({percentage:.1f}%)"
+        
+        explanation += f"\n\n**Top Partner Companies:**"
+        for partner_name, count in partner_breakdown.items():
+            percentage = (count / total_drivers * 100)
+            explanation += f"\n• {partner_name}: {count:,} drivers ({percentage:.1f}%)"
+        
+        return {
+            'success': True,
+            'query': user_query,
+            'explanation': explanation,
+            'result_count': int(total_drivers),
+            'data_summary': {
+                'total_drivers': int(total_drivers),
+                'active_drivers': int(active_count),
+                'inactive_drivers': int(inactive_count),
+                'top_cities': {k: int(v) for k, v in city_breakdown.items()},
+                'states': {k: int(v) for k, v in state_breakdown.items()},
+                'top_partners': {k: int(v) for k, v in partner_breakdown.items()}
+            }
+        }
+    
+    def _extract_state_from_query(self, query: str) -> Optional[str]:
+        """Extract state name from query"""
+        import re
+        query_lower = query.lower()
+        
+        # Common Indian states
+        states = ['maharashtra', 'karnataka', 'tamil nadu', 'gujarat', 'rajasthan', 
+                 'uttar pradesh', 'west bengal', 'madhya pradesh', 'bihar', 'odisha',
+                 'telangana', 'andhra pradesh', 'kerala', 'punjab', 'haryana', 'delhi']
+        
+        for state in states:
+            # Use word boundaries to avoid substring matches (e.g., "delhi" in "delhivery")
+            pattern = r'\b' + re.escape(state) + r'\b'
+            if re.search(pattern, query_lower):
+                return state.title()
+        return None
+    
+    def _extract_status_from_query(self, query: str) -> Optional[str]:
+        """Extract status from query"""
+        query_lower = query.lower()
+        
+        if 'active' in query_lower:
+            return 'Active'
+        elif 'inactive' in query_lower:
+            return 'Inactive'
+        return None
+    
+    def _extract_partner_from_query(self, query: str) -> Optional[str]:
+        """Extract partner company from query"""
+        query_lower = query.lower()
+        
+        # Get actual partner companies from data
+        if 'drivers' in self.dataframes:
+            partners = self.dataframes['drivers']['partner_company'].dropna().unique()
+            for partner in partners:
+                if partner.lower() in query_lower:
+                    return partner
+        return None
+
     # Additional helper methods would go here...
     def _extract_cities_from_comparison_query(self, query: str) -> List[str]:
         """Extract two cities from comparison query"""
         cities_found = []
         query_lower = query.lower()
         
-        # First try to find cities from our data
+        # Define city aliases for common name variations
+        city_aliases = {
+            'bangalore': 'Bengaluru',
+            'bengaluru': 'Bengaluru',
+            'mumbai': 'Mumbai',
+            'bombay': 'Mumbai',
+            'delhi': 'New Delhi',
+            'new delhi': 'New Delhi',
+            'chennai': 'Chennai',
+            'madras': 'Chennai'
+        }
+        
+        # First check for aliases
+        for alias, actual_city in city_aliases.items():
+            if alias in query_lower and actual_city not in cities_found:
+                # Verify the actual city exists in our data
+                if actual_city in self.city_patterns:
+                    cities_found.append(actual_city)
+        
+        # Then try to find cities from our data
         for city in self.city_patterns:
-            if city.lower() in query_lower:
+            if city.lower() in query_lower and city not in cities_found:
                 cities_found.append(city)
         
         # If we found at least 2, return them
@@ -860,10 +1951,13 @@ class EnhancedCSVEngine:
         common_cities = ['mumbai', 'delhi', 'bangalore', 'chennai', 'pune', 'hyderabad', 'ahmedabad', 'coimbatore']
         
         for city in common_cities:
-            if city in query_lower and city.title() not in cities_found:
-                cities_found.append(city.title())
-                if len(cities_found) >= 2:
-                    break
+            if city in query_lower:
+                # Map to actual city name if it's an alias
+                actual_city = city_aliases.get(city, city.title())
+                if actual_city not in cities_found:
+                    cities_found.append(actual_city)
+                    if len(cities_found) >= 2:
+                        break
         
         return cities_found[:2]  # Return first two cities found
     

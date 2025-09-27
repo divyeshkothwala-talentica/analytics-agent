@@ -1,0 +1,286 @@
+{
+  "generated_at": "2025-09-27T17:19:52.941155",
+  "total_queries": 35,
+  "results": [
+    {
+      "query": "What's the average order value?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.00072479248046875,
+      "explanation": "Average order value: $2611.46",
+      "error": null
+    },
+    {
+      "query": "why were the deliveries delayed in mumbai this month",
+      "success": true,
+      "result_count": 10,
+      "processing_time": 0.01194000244140625,
+      "explanation": "## 📊 City Delay Analysis - Mumbai in this_month\n\n**Executive Summary:**\n• Total orders analyzed: 27\n• Delayed/Failed orders: 10 (37.0%)\n• Primary delay reason: Incorrect address\n• Revenue impact: $26837.66\n\n**Top Delay Reasons:**\n• Incorrect address: 2 orders (20.0%)\n• Weather disruption: 1 orders (10.0%)\n• Warehouse delay: 1 orders (10.0%)\n\n**External Factor Correlation:**\nWeather: {'Fog': 4, 'Clear': 4, 'Rain': 2}, Traffic: {'Heavy': 4, 'Clear': 3, 'Moderate': 3}\n\n---\n\n## 🔍 Data Analysis Details\n\n**Query Processing:**\n• Analyzed 27 orders from Mumbai in this_month\n• Time period: this_month\n• Data sources: orders.csv, external_factors.csv\n• Analysis confidence: 100% (Direct CSV analysis)\n\n**Statistical Breakdown:**\n• Success rate: 63.0%\n• Average order value: $2706.48\n• Peak failure day: Monday",
+      "error": null
+    },
+    {
+      "query": "What are the likely causes of delivery failures during the festival period, and how should we prepare?",
+      "success": true,
+      "result_count": 427,
+      "processing_time": 0.013401985168457031,
+      "explanation": "## 📅 Seasonal Pattern Analysis - Festival Impact\n\n**Festival Period Impact:**\n• Festival period orders: 2,261\n• Festival failure rate: 18.9%\n• Normal period failure rate: 20.4%\n• Impact difference: -1.5 percentage points\n\n**Seasonal Factors:**\n• Weather-related delays: 6697 orders\n• Traffic impact during festivals: 3335 orders\n• Strike-related disruptions: 2374 orders\n\n**Preparation Recommendations:**\n• Increase inventory by 15% before festival periods\n• Deploy additional drivers in high-traffic areas\n• Implement weather-based delivery scheduling\n• Set up alternative routes for festival congestion\n\n**Risk Mitigation:**\n• Monitor weather forecasts 48 hours ahead\n• Pre-position inventory in festival-heavy regions\n• Coordinate with local authorities for traffic updates\n• Implement dynamic pricing for peak periods\n\n---\n\n## 🔍 Data-Driven Insights\n\n**Historical Pattern Analysis:**\n• Peak failure months: Apr\n• Weather correlation: Strong\n• Volume surge during festivals: 29.2% increase",
+      "error": null
+    },
+    {
+      "query": "Explain the top reasons for delivery failures linked to Warehouse 27 in August?",
+      "success": true,
+      "result_count": 24,
+      "processing_time": 0.007314920425415039,
+      "explanation": "## 🏭 Warehouse Performance Analysis - Warehouse 27\n\n**Warehouse Profile:**\n• Warehouse ID: 27\n• Location: Mumbai, Maharashtra\n• Capacity: 760 units\n• Manager: Lagan Cherian\n\n**Performance Metrics:**\n• Orders processed: 31\n• Orders with issues: 24\n• Issue rate: 77.4%\n• Related order failures: 9\n\n**Top Issues:**\n• Slow Packing: 10 occurrences\n• System Issues: 13 occurrences\n• Stock Delays: 1 occurrences\n\n**Failure Impact:**\n• Revenue impact: $24408.08\n• Most common failure: Stockout\n\n---\n\n## 🔍 Operational Analysis\n\n**Processing Efficiency:**\n• Average processing time: 10.6 minutes\n• Peak processing hours: 17:00-18:00\n• Capacity utilization: 4.1%",
+      "error": null
+    },
+    {
+      "query": "If we onboard Ahmedabad with ~20,000 extra monthly orders, what new failure risks should we expect and how do we mitigate them?",
+      "success": true,
+      "result_count": 20000,
+      "processing_time": 0.012221097946166992,
+      "explanation": "## 📈 Capacity Impact Analysis - Ahmedabad + 20,000 Extra Monthly Orders\n\n**Current Ahmedabad City (Monthly Average (9 Months)) Status:**\n• Current monthly orders: 113 (city-specific)\n• Current failure rate: 18.5%\n• Warehouse utilization: 0.2%\n• Total warehouse capacity: 58,156 units\n\n**Projected Impact:**\n• New monthly volume: 20,113 orders\n• New utilization: 34.6%\n• Projected failure rate: 23.5%\n• Capacity strain: LOW\n\n**Resource Requirements:**\n• Additional drivers needed: 20\n• Additional warehouses: 0\n• Infrastructure investment: $1,000,000\n\n**Risk Assessment:**\n• Volume surge risk: HIGH\n• System bottlenecks: No significant bottlenecks expected\n• Failure risk increase: 5.0 percentage points\n\n**Ahmedabad Mitigation Strategy:**\n• Phase rollout over 3-6 months\n• Focus on Ahmedabad warehouse capacity\n• Hire 20 additional drivers in Ahmedabad region\n• Implement load balancing across warehouses\n\n---\n\n## 🔍 Predictive Analysis\n\n**Analysis Scope:** Ahmedabad City (Monthly Average (9 Months))\n**Historical Volume Correlation:**\n• Past volume increases show 5.0% failure rate increase per 10k orders\n• Peak capacity threshold: 49433 orders/month\n• Recommended max utilization: 80% (46525 orders/month)\n• Ahmedabad current market share: 1.1% of total orders",
+      "error": null
+    },
+    {
+      "query": "Compare delivery failure causes between Mumbai and Bengaluru in this month ?",
+      "success": true,
+      "result_count": 73,
+      "processing_time": 0.011707305908203125,
+      "explanation": "## ⚖️ City Performance Comparison - Bengaluru vs Mumbai\n\n**Overall Winner: Mumbai** 🏆\n\n**Bengaluru Performance:**\n• Total orders: 46\n• Success rate: 82.6%\n• Average order value: $2910.98\n• Top failure reason: Weather disruption\n\n**Mumbai Performance:**\n• Total orders: 27\n• Success rate: 85.2%\n• Average order value: $2706.48\n• Top failure reason: Incorrect address\n\n**Key Differences:**\n• Success rate gap: 2.6 percentage points\n• Volume difference: 19 orders\n• Revenue difference: $60830.05\n\n---\n\n## 🔍 Comparative Analysis\n\n**Failure Pattern Analysis:**\nBengaluru top failure: Weather disruption\nMumbai top failure: Incorrect address\n\n**Recommendations:**\n• Replicate Mumbai's best practices in Bengaluru\n• Focus on improving Bengaluru's primary failure causes\n• Consider resource reallocation between cities",
+      "error": null
+    },
+    {
+      "query": "Why did Deol Inc's orders fail in the past week?",
+      "success": true,
+      "result_count": 1,
+      "processing_time": 0.0029299259185791016,
+      "explanation": "## 📊 Client Failure Analysis - Deol Inc (last_week)\n\n**Client Profile:**\n• Client ID: 9\n• Contact: Vidur Dalal (5164911720)\n• Location: Coimbatore, Tamil Nadu\n\n**Performance Summary (last_week):**\n• Total orders: 15\n• Failed orders: 1 (6.7%)\n• Revenue at risk: $912.42\n• Performance status: Above average\n\n**Failure Breakdown:**\n• Stockout: 1 orders (100.0%)\n\n---\n\n## 🔍 Data Analysis Details\n\n**Analysis Scope:**\n• Time period: last_week\n• Orders analyzed: 15 (last_week)\n• Data sources: orders.csv, clients.csv\n• Client match confidence: 100%\n\n**Recommendations:**\n• Client performance is excellent, maintain current service levels",
+      "error": null
+    },
+    {
+      "query": "how many drivers are available in Mumbai ?",
+      "success": true,
+      "result_count": 118,
+      "processing_time": 0.0027167797088623047,
+      "explanation": "## 🚗 Driver Analysis (City: Mumbai)\n\n**Overall Statistics:**\n• Total drivers: 118\n• Active drivers: 58 (49.2%)\n• Inactive drivers: 60 (50.8%)\n\n**Top Cities:**\n• Mumbai: 118 drivers (100.0%)\n\n**State Distribution:**\n• Maharashtra: 118 drivers (100.0%)\n\n**Top Partner Companies:**\n• EcomExpress: 28 drivers (23.7%)\n• Delhivery: 25 drivers (21.2%)\n• In-house: 23 drivers (19.5%)\n• BlueDart: 22 drivers (18.6%)\n• Shadowfax: 20 drivers (16.9%)",
+      "error": null
+    },
+    {
+      "query": "how many drivers are available of bluedart in New Delhi ?",
+      "success": true,
+      "result_count": 74,
+      "processing_time": 0.004810810089111328,
+      "explanation": "## 🚗 Driver Analysis (City: New Delhi, State: Delhi, Partner: BlueDart)\n\n**Overall Statistics:**\n• Total drivers: 74\n• Active drivers: 38 (51.4%)\n• Inactive drivers: 36 (48.6%)\n\n**Top Cities:**\n• New Delhi: 74 drivers (100.0%)\n\n**State Distribution:**\n• Delhi: 74 drivers (100.0%)\n\n**Top Partner Companies:**\n• BlueDart: 74 drivers (100.0%)",
+      "error": null
+    },
+    {
+      "query": "what is total capacity of warehouse in Surat ?",
+      "success": true,
+      "result_count": 6237,
+      "processing_time": 0.0013382434844970703,
+      "explanation": "🏭 **Warehouse Capacity Analysis for Surat**\n\n📊 **Total Capacity**: 6,237 units\n🏢 **Number of Warehouses**: 4\n📈 **Average Capacity**: 1559.25 units per warehouse\n\n📋 **Individual Warehouses:**\n• Warehouse 1: 1,226 units (Manager: Aaina Kannan)\n• Warehouse 17: 1,984 units (Manager: Seher Amble)\n• Warehouse 33: 1,407 units (Manager: Adah Bal)\n• Warehouse 50: 1,620 units (Manager: Arnav Joshi)",
+      "error": null
+    },
+    {
+      "query": "What's the total revenue for orders delivered successfully this month?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.0003497600555419922,
+      "explanation": "Total revenue: $26,114,578.88",
+      "error": null
+    },
+    {
+      "query": "Why were the deliveries delayed in Delhi last week?",
+      "success": true,
+      "result_count": 392,
+      "processing_time": 0.05111503601074219,
+      "explanation": "## 📊 Executive Summary - Delhi Delivery Analysis\n\n**City Performance:**\n• Total orders: 2002\n• Failed orders: 392\n• Failure rate: 19.6%\n• Revenue impact: $1023502.91\n\n**Top Failure Reasons in Delhi:**\n• Stockout: 83 orders (21.2%)\n• Warehouse delay: 82 orders (20.9%)\n• Incorrect address: 82 orders (20.9%)\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Geographic Analysis:**\n• City: Delhi\n• Order volume: 2002 orders analyzed\n• Success rate: 80.4%",
+      "error": null
+    },
+    {
+      "query": "What are the main causes of order cancellations during monsoon season?",
+      "success": true,
+      "result_count": 427,
+      "processing_time": 0.01300358772277832,
+      "explanation": "## 📅 Seasonal Pattern Analysis - Festival Impact\n\n**Festival Period Impact:**\n• Festival period orders: 2,261\n• Festival failure rate: 18.9%\n• Normal period failure rate: 20.4%\n• Impact difference: -1.5 percentage points\n\n**Seasonal Factors:**\n• Weather-related delays: 6697 orders\n• Traffic impact during festivals: 3335 orders\n• Strike-related disruptions: 2374 orders\n\n**Preparation Recommendations:**\n• Increase inventory by 15% before festival periods\n• Deploy additional drivers in high-traffic areas\n• Implement weather-based delivery scheduling\n• Set up alternative routes for festival congestion\n\n**Risk Mitigation:**\n• Monitor weather forecasts 48 hours ahead\n• Pre-position inventory in festival-heavy regions\n• Coordinate with local authorities for traffic updates\n• Implement dynamic pricing for peak periods\n\n---\n\n## 🔍 Data-Driven Insights\n\n**Historical Pattern Analysis:**\n• Peak failure months: Apr\n• Weather correlation: Strong\n• Volume surge during festivals: 29.2% increase",
+      "error": null
+    },
+    {
+      "query": "Explain the efficiency issues with Warehouse 15 in September?",
+      "success": true,
+      "result_count": 156,
+      "processing_time": 0.004445791244506836,
+      "explanation": "## 🏭 Warehouse Performance Analysis - Warehouse 15\n\n**Warehouse Profile:**\n• Warehouse ID: 15\n• Location: Ahmedabad, Gujarat\n• Capacity: 1,837 units\n• Manager: Bhamini Sharma\n\n**Performance Metrics:**\n• Orders processed: 199\n• Orders with issues: 156\n• Issue rate: 78.4%\n• Related order failures: 36\n\n**Top Issues:**\n• Stock Delays: 52 occurrences\n• Slow Packing: 50 occurrences\n• System Issues: 54 occurrences\n\n**Failure Impact:**\n• Revenue impact: $89042.07\n• Most common failure: Warehouse delay\n\n---\n\n## 🔍 Operational Analysis\n\n**Processing Efficiency:**\n• Average processing time: 12.8 minutes\n• Peak processing hours: 2:00-3:00\n• Capacity utilization: 10.8%",
+      "error": null
+    },
+    {
+      "query": "If we expand to Pune with 15,000 monthly orders, what infrastructure changes are needed?",
+      "success": true,
+      "result_count": 9,
+      "processing_time": 0.011520147323608398,
+      "explanation": "## 📈 Trend Analysis\n\n**Monthly Order Trends:**\n• Average monthly orders: 1111\n• Peak month: 2025-07\n• Growth trend: Decreasing\n\n**Failure Rate Trends:**\n• Monthly failure trend: Improving\n• Seasonal patterns detected: Yes\n\n**Revenue Trends:**\n• Monthly revenue growth: -62.4%",
+      "error": null
+    },
+    {
+      "query": "Compare delivery success rates between Chennai and Hyderabad this quarter?",
+      "success": true,
+      "result_count": 192,
+      "processing_time": 0.03689384460449219,
+      "explanation": "## 📊 Executive Summary - Chennai Delivery Analysis\n\n**City Performance:**\n• Total orders: 964\n• Failed orders: 192\n• Failure rate: 19.9%\n• Revenue impact: $555546.87\n\n**Top Failure Reasons in Chennai:**\n• Warehouse delay: 45 orders (23.4%)\n• Stockout: 40 orders (20.8%)\n• Weather disruption: 38 orders (19.8%)\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Geographic Analysis:**\n• City: Chennai\n• Order volume: 964 orders analyzed\n• Success rate: 80.1%",
+      "error": null
+    },
+    {
+      "query": "Why did Saini Group's orders have high failure rates recently?",
+      "success": true,
+      "result_count": 50,
+      "processing_time": 0.04207587242126465,
+      "explanation": "## 📊 Executive Summary - Order Failures Analysis\n\n**Key Findings:**\n• Recent failed orders: 50\n• Total revenue impact: $115626.83\n• Most affected city: New Delhi\n\n**Recent Failed Orders:**\n• Order 1: Kiaan Dara - Stockout\n• Order 8: Rati Divan - Warehouse delay\n• Order 9: Divit Dyal - Traffic congestion\n• Order 12: Shayak Saraf - Incorrect address\n• Order 13: Kimaya Datta - Stockout\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Analysis Methodology:**\n• Dataset: Recent 50 failed orders from CSV\n• Analysis method: Direct order status filtering and analysis",
+      "error": null
+    },
+    {
+      "query": "How many active drivers are there in Bangalore?",
+      "success": true,
+      "result_count": 201,
+      "processing_time": 0.0027070045471191406,
+      "explanation": "## 🚗 Driver Analysis (City: Bengaluru, Status: Active)\n\n**Overall Statistics:**\n• Total drivers: 201\n• Active drivers: 104 (51.7%)\n• Inactive drivers: 97 (48.3%)\n\n**Top Cities:**\n• Bengaluru: 201 drivers (100.0%)\n\n**State Distribution:**\n• Karnataka: 201 drivers (100.0%)\n\n**Top Partner Companies:**\n• BlueDart: 45 drivers (22.4%)\n• EcomExpress: 42 drivers (20.9%)\n• Delhivery: 42 drivers (20.9%)\n• In-house: 41 drivers (20.4%)\n• Shadowfax: 31 drivers (15.4%)",
+      "error": null
+    },
+    {
+      "query": "How many Delhivery drivers are available in Chennai?",
+      "success": true,
+      "result_count": 70,
+      "processing_time": 0.0038671493530273438,
+      "explanation": "## 🚗 Driver Analysis (City: New Delhi, State: Delhi, Partner: Delhivery)\n\n**Overall Statistics:**\n• Total drivers: 70\n• Active drivers: 31 (44.3%)\n• Inactive drivers: 39 (55.7%)\n\n**Top Cities:**\n• New Delhi: 70 drivers (100.0%)\n\n**State Distribution:**\n• Delhi: 70 drivers (100.0%)\n\n**Top Partner Companies:**\n• Delhivery: 70 drivers (100.0%)",
+      "error": null
+    },
+    {
+      "query": "What is the storage utilization of warehouses in Mumbai?",
+      "success": true,
+      "result_count": 150,
+      "processing_time": 0.047283172607421875,
+      "explanation": "## 📊 Executive Summary - Mumbai Delivery Analysis\n\n**City Performance:**\n• Total orders: 673\n• Failed orders: 150\n• Failure rate: 22.3%\n• Revenue impact: $389478.38\n\n**Top Failure Reasons in Mumbai:**\n• Warehouse delay: 36 orders (24.0%)\n• Weather disruption: 34 orders (22.7%)\n• Traffic congestion: 29 orders (19.3%)\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Geographic Analysis:**\n• City: Mumbai\n• Order volume: 673 orders analyzed\n• Success rate: 77.7%",
+      "error": null
+    },
+    {
+      "query": "What's the average delivery time for orders in Pune?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.00024962425231933594,
+      "explanation": "Average order value: $2611.46",
+      "error": null
+    },
+    {
+      "query": "Which clients had the most order failures last month?",
+      "success": true,
+      "result_count": 0,
+      "processing_time": 0.03399205207824707,
+      "explanation": "## ❌ Client Not Found - \"most\"\n\n**Search Results:**\n• Searched for client name containing: \"most\"\n• No matching clients found in database\n• Total clients in database: 500\n\n**Available Clients (Sample):**\n• Saini LLC\n• Mann Group\n• Zacharia, Sarkar and Dass\n• Datta-Mand\n• Kale PLC\n• Zacharia-Mahal\n• Wadhwa-Upadhyay\n• Tailor, Ganesh and Kuruvilla\n• Deol Inc\n• Yogi-Jaggi\n\n**Suggestions:**\n• Try searching with partial names (e.g., \"Saini\", \"Mann\", \"LLC\")\n• Check spelling of client name\n• Use \"which clients failed\" to see all client failures\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Natural Language to SQL Translation:**\n\n🔍 **User Query:** \"Which clients had the most order failures last month?\"\n📝 **Intent:** Find specific client \"most\"\n❌ **Result:** No client found matching pattern\n\n🔧 **SQL Query Executed:**\n```sql\nSELECT client_id, client_name \nFROM clients \nWHERE client_name LIKE '%most%'\n-- Result: 0 rows\n```\n\n**Alternative Query Suggestions:**\n```sql\n-- See all clients with failures\nSELECT c.client_name, COUNT(o.order_id) as failed_orders\nFROM clients c JOIN orders o ON c.client_id = o.client_id\nWHERE o.status = 'Failed'\nGROUP BY c.client_name\nORDER BY failed_orders DESC\n```",
+      "error": null
+    },
+    {
+      "query": "What are the peak delivery hours causing most delays?",
+      "success": true,
+      "result_count": 40,
+      "processing_time": 0.03780817985534668,
+      "explanation": "📅 Seasonal impact analysis: During festival periods, delivery volume increased by 257% with failure rates rising by 40.3%. Weather and traffic congestion were major contributing factors.",
+      "error": null
+    },
+    {
+      "query": "How does weather affect delivery performance in coastal cities?",
+      "success": true,
+      "result_count": 427,
+      "processing_time": 0.008122920989990234,
+      "explanation": "## 📅 Seasonal Pattern Analysis - Festival Impact\n\n**Festival Period Impact:**\n• Festival period orders: 2,261\n• Festival failure rate: 18.9%\n• Normal period failure rate: 20.4%\n• Impact difference: -1.5 percentage points\n\n**Seasonal Factors:**\n• Weather-related delays: 6697 orders\n• Traffic impact during festivals: 3335 orders\n• Strike-related disruptions: 2374 orders\n\n**Preparation Recommendations:**\n• Increase inventory by 15% before festival periods\n• Deploy additional drivers in high-traffic areas\n• Implement weather-based delivery scheduling\n• Set up alternative routes for festival congestion\n\n**Risk Mitigation:**\n• Monitor weather forecasts 48 hours ahead\n• Pre-position inventory in festival-heavy regions\n• Coordinate with local authorities for traffic updates\n• Implement dynamic pricing for peak periods\n\n---\n\n## 🔍 Data-Driven Insights\n\n**Historical Pattern Analysis:**\n• Peak failure months: Apr\n• Weather correlation: Strong\n• Volume surge during festivals: 29.2% increase",
+      "error": null
+    },
+    {
+      "query": "What's the cost impact of delivery failures on our revenue?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.006247282028198242,
+      "explanation": "## 🔗 General Correlation Analysis\n\n**Order Value vs Success Rate:**\n• Very Low: 19.3% failure rate\n• Low: 21.3% failure rate\n• Medium: 19.8% failure rate\n• High: 19.6% failure rate\n• Very High: 20.1% failure rate\n\n**Key Correlations Found:**\n• Order value impact: No clear value correlation\n• City performance varies significantly\n• Time-based patterns exist in delivery success\n\n**Statistical Significance:** High (based on 10,000 orders analyzed)",
+      "error": null
+    },
+    {
+      "query": "Which warehouse has the highest processing efficiency?",
+      "success": true,
+      "result_count": 109,
+      "processing_time": 0.03283190727233887,
+      "explanation": "## 🏭 Executive Summary - Warehouse_B Operations\n\n**Operational Performance:**\n• Efficiency score: 78.4/100 (Below Average)\n• Failure rate: 11.1% (109 failures out of 984 orders)\n• Cost impact: $4905 in failure-related costs\n\n**Strategic Actions:**\n• Immediate efficiency improvements required\n• Focus on inventory shortage (top issue: 44%)\n• Potential savings: $2943 with 12.6 point efficiency gain\n\n---\n\n## 🔍 Data-Backed Rationale\n\n**Analysis Methodology:**\n• Dataset: 984 orders processed in August for Warehouse_B\n• Confidence Level: 96% (Operational efficiency analysis)\n• Analysis Method: Operational efficiency analysis with failure categorization\n\n**Operational Metrics Validation:**\n• Daily throughput: 32 orders/day (Capacity utilization: 64.0%)\n• Equipment uptime: 93.0% (Target: >95%)\n• Staff utilization: 78.5% (Peak hours: 2-4 PM)\n• Storage utilization: 72.6%\n\n**Financial Impact Breakdown:**\n• Processing cost: $12300 ($12.50/order)\n• Failure cost: $4905 ($45/failure)\n• Cost per successful order: $14.06\n\n**Benchmark Analysis:**\n• Industry average: 82.5% efficiency\n• Top quartile: 91.0% efficiency\n• Current ranking: Below Average\n• Improvement gap: 12.6 percentage points\n\n**Failure Root Cause Analysis:**\n• Inventory Shortage: 44% of failures\n• Packaging Delays: 22% of failures\n• Staff Shortage: 13% of failures\n• Equipment Malfunction: 12% of failures\n• Quality Issues: 9% of failures",
+      "error": null
+    },
+    {
+      "query": "What are the main reasons for customer complaints this quarter?",
+      "success": true,
+      "result_count": 0,
+      "processing_time": 0.12798404693603516,
+      "explanation": "Query processed but no specific results found for: What are the main reasons for customer complaints this quarter?",
+      "error": null
+    },
+    {
+      "query": "How many orders were processed during Diwali week?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.0007750988006591797,
+      "explanation": "Statistical analysis completed",
+      "error": null
+    },
+    {
+      "query": "What's the driver utilization rate across different cities?",
+      "success": true,
+      "result_count": 2000,
+      "processing_time": 0.016873836517333984,
+      "explanation": "## 🚗 Driver Analysis\n\n**Overall Statistics:**\n• Total drivers: 2,000\n• Active drivers: 988 (49.4%)\n• Inactive drivers: 1,012 (50.6%)\n\n**Top Cities:**\n• New Delhi: 357 drivers (17.8%)\n• Coimbatore: 228 drivers (11.4%)\n• Mysuru: 226 drivers (11.3%)\n• Ahmedabad: 214 drivers (10.7%)\n• Surat: 204 drivers (10.2%)\n• Bengaluru: 201 drivers (10.1%)\n• Chennai: 196 drivers (9.8%)\n• Nagpur: 139 drivers (7.0%)\n• Mumbai: 118 drivers (5.9%)\n• Pune: 117 drivers (5.9%)\n\n**State Distribution:**\n• Karnataka: 427 drivers (21.3%)\n• Tamil Nadu: 424 drivers (21.2%)\n• Gujarat: 418 drivers (20.9%)\n• Maharashtra: 374 drivers (18.7%)\n• Delhi: 357 drivers (17.8%)\n\n**Top Partner Companies:**\n• EcomExpress: 440 drivers (22.0%)\n• In-house: 416 drivers (20.8%)\n• BlueDart: 413 drivers (20.6%)\n• Shadowfax: 382 drivers (19.1%)\n• Delhivery: 349 drivers (17.4%)",
+      "error": null
+    },
+    {
+      "query": "Which delivery partner has the best performance metrics?",
+      "success": true,
+      "result_count": 135,
+      "processing_time": 0.14686894416809082,
+      "explanation": "📊 Performance trend analysis: Current delivery performance shows 36.3% delay rate with improving trends. Key metrics indicate operational efficiency gains over the past month.",
+      "error": null
+    },
+    {
+      "query": "What are the seasonal trends in order volumes?",
+      "success": true,
+      "result_count": 427,
+      "processing_time": 0.011963844299316406,
+      "explanation": "## 📅 Seasonal Pattern Analysis - Festival Impact\n\n**Festival Period Impact:**\n• Festival period orders: 2,261\n• Festival failure rate: 18.9%\n• Normal period failure rate: 20.4%\n• Impact difference: -1.5 percentage points\n\n**Seasonal Factors:**\n• Weather-related delays: 6697 orders\n• Traffic impact during festivals: 3335 orders\n• Strike-related disruptions: 2374 orders\n\n**Preparation Recommendations:**\n• Increase inventory by 15% before festival periods\n• Deploy additional drivers in high-traffic areas\n• Implement weather-based delivery scheduling\n• Set up alternative routes for festival congestion\n\n**Risk Mitigation:**\n• Monitor weather forecasts 48 hours ahead\n• Pre-position inventory in festival-heavy regions\n• Coordinate with local authorities for traffic updates\n• Implement dynamic pricing for peak periods\n\n---\n\n## 🔍 Data-Driven Insights\n\n**Historical Pattern Analysis:**\n• Peak failure months: Apr\n• Weather correlation: Strong\n• Volume surge during festivals: 29.2% increase",
+      "error": null
+    },
+    {
+      "query": "How do traffic conditions impact delivery times in metro cities?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.015727996826171875,
+      "explanation": "## 🚦 Traffic Impact Correlation Analysis\n\n**Failure Rates by Traffic Condition:**\n• Clear: 20.3% failure rate\n• Heavy: 18.9% failure rate\n• Moderate: 19.7% failure rate\n\n**Key Insights:**\n• Highest risk traffic: Clear (20.3% failure rate)\n• Clear traffic performance: 20.3% failure rate\n• Traffic impact: 1.4 percentage point difference\n\n**Recommendations:**\n• Avoid scheduling during heavy traffic periods\n• Implement dynamic routing for congested areas\n• Consider time-based delivery windows",
+      "error": null
+    },
+    {
+      "query": "What's the correlation between order value and delivery success?",
+      "success": true,
+      "result_count": 10000,
+      "processing_time": 0.0040912628173828125,
+      "explanation": "## 🔗 General Correlation Analysis\n\n**Order Value vs Success Rate:**\n• Very Low: 19.3% failure rate\n• Low: 21.3% failure rate\n• Medium: 19.8% failure rate\n• High: 19.6% failure rate\n• Very High: 20.1% failure rate\n\n**Key Correlations Found:**\n• Order value impact: No clear value correlation\n• City performance varies significantly\n• Time-based patterns exist in delivery success\n\n**Statistical Significance:** High (based on 10,000 orders analyzed)",
+      "error": null
+    },
+    {
+      "query": "Which geographic regions need more delivery capacity?",
+      "success": true,
+      "result_count": 20000,
+      "processing_time": 0.0030128955841064453,
+      "explanation": "## 📈 Capacity Impact Analysis - System + 20,000 Extra Monthly Orders\n\n**Current Overall System (Monthly Average) Status:**\n• Current monthly orders: 1,111 (system-wide)\n• Current failure rate: 20.0%\n• Warehouse utilization: 1.9%\n• Total warehouse capacity: 58,156 units\n\n**Projected Impact:**\n• New monthly volume: 21,111 orders\n• New utilization: 36.3%\n• Projected failure rate: 25.0%\n• Capacity strain: LOW\n\n**Resource Requirements:**\n• Additional drivers needed: 20\n• Additional warehouses: 0\n• Infrastructure investment: $1,000,000\n\n**Risk Assessment:**\n• Volume surge risk: HIGH\n• System bottlenecks: No significant bottlenecks expected\n• Failure risk increase: 5.0 percentage points\n\n**Mitigation Strategy:**\n• Phase rollout over 3-6 months\n• Increase warehouse capacity by 25%\n• Hire 20 additional drivers across regions\n• Implement load balancing across warehouses\n\n---\n\n## 🔍 Predictive Analysis\n\n**Analysis Scope:** Overall System (Monthly Average)\n**Historical Volume Correlation:**\n• Past volume increases show 5.0% failure rate increase per 10k orders\n• Peak capacity threshold: 49433 orders/month\n• Recommended max utilization: 80% (46525 orders/month)\n",
+      "error": null
+    },
+    {
+      "query": "What are the operational bottlenecks in our supply chain?",
+      "success": true,
+      "result_count": 0,
+      "processing_time": 0.06798195838928223,
+      "explanation": "Query processed but no specific results found for: What are the operational bottlenecks in our supply chain?",
+      "error": null
+    }
+  ]
+}
