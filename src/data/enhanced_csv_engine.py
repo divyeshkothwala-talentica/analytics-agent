@@ -891,52 +891,71 @@ class EnhancedCSVEngine:
         
         # Current system analysis
         orders_df = self.dataframes['orders']
+        warehouses_df = self.dataframes['warehouses']
+        
+        # Determine if this is expansion to new city or scaling existing operations
+        is_new_city_expansion = False
         
         # If city is specified, analyze city-specific capacity
         if city:
             city_orders = orders_df[orders_df['city'].str.contains(city, case=False, na=False)]
+            city_warehouses = warehouses_df[warehouses_df['city'].str.contains(city, case=False, na=False)]
             
-            # Calculate realistic monthly baseline using multiple approaches
-            if 'order_date' in city_orders.columns:
-                city_orders['year_month'] = city_orders['order_date'].dt.to_period('M')
-                monthly_counts = city_orders.groupby('year_month').size()
+            # Check if this is a new city expansion (very low current volume)
+            if len(city_orders) < 100:  # Threshold for considering it a new expansion
+                is_new_city_expansion = True
+                # For new city expansion, use regional benchmarks
+                state_orders = orders_df[orders_df['state'].str.contains(
+                    warehouses_df[warehouses_df['city'].str.contains(city, case=False, na=False)]['state'].iloc[0] 
+                    if len(city_warehouses) > 0 else 'Gujarat', case=False, na=False)]
                 
-                if len(monthly_counts) > 0:
-                    # Use average monthly orders for capacity planning
-                    avg_monthly_orders = int(monthly_counts.mean())
+                # Use state average as baseline for new city
+                if 'order_date' in state_orders.columns:
+                    state_orders['year_month'] = state_orders['order_date'].dt.to_period('M')
+                    state_monthly_counts = state_orders.groupby('year_month').size()
+                    state_avg_monthly = int(state_monthly_counts.mean()) if len(state_monthly_counts) > 0 else 1000
                     
-                    # Get recent trend (last 3 months if available)
-                    recent_months = monthly_counts.tail(3)
-                    recent_avg = int(recent_months.mean()) if len(recent_months) > 0 else avg_monthly_orders
+                    # Estimate new city potential as percentage of state volume
+                    current_monthly_orders = max(100, state_avg_monthly // 10)  # Conservative estimate
+                    time_period = f"new city expansion (estimated baseline from state avg)"
+                    trend_note = f" - scaling from regional benchmark of {state_avg_monthly:,}/month"
+                else:
+                    current_monthly_orders = 500  # Conservative baseline for new city
+                    time_period = "new city expansion (estimated)"
+                    trend_note = ""
+                
+                # Use state failure rate as baseline
+                current_failure_rate = len(state_orders[state_orders['status'] == 'Failed']) / len(state_orders) * 100 if len(state_orders) > 0 else 20.0
+                analysis_scope = f"{city} expansion ({time_period}){trend_note}"
+                
+                # City-specific warehouse capacity
+                city_warehouse_capacity = city_warehouses['capacity'].sum() if len(city_warehouses) > 0 else 5000  # Estimate for new city
+                
+            else:
+                # Existing city scaling
+                if 'order_date' in city_orders.columns:
+                    city_orders = city_orders.copy()
+                    city_orders['year_month'] = city_orders['order_date'].dt.to_period('M')
+                    monthly_counts = city_orders.groupby('year_month').size()
                     
-                    # Use recent trend if significantly different, otherwise use overall average
-                    if abs(recent_avg - avg_monthly_orders) > avg_monthly_orders * 0.2:  # 20% difference threshold
-                        current_monthly_orders = recent_avg
-                        time_period = f"recent trend ({len(recent_months)} months avg)"
-                        trend_note = f" (trending from {avg_monthly_orders} overall avg)"
-                    else:
-                        current_monthly_orders = avg_monthly_orders
+                    if len(monthly_counts) > 0:
+                        current_monthly_orders = int(monthly_counts.mean())
                         time_period = f"monthly average ({len(monthly_counts)} months)"
                         trend_note = ""
-                    
-                    # For failure rate, use overall city data for better statistical significance
-                    monthly_orders_for_failure_rate = city_orders
-                    
+                    else:
+                        current_monthly_orders = len(city_orders) // 12
+                        time_period = "estimated monthly average"
+                        trend_note = ""
                 else:
                     current_monthly_orders = len(city_orders) // 12
-                    monthly_orders_for_failure_rate = city_orders
                     time_period = "estimated monthly average"
                     trend_note = ""
-            else:
-                current_monthly_orders = len(city_orders) // 12
-                monthly_orders_for_failure_rate = city_orders
-                time_period = "estimated monthly average"
-                trend_note = ""
-            
-            current_failure_rate = len(monthly_orders_for_failure_rate[monthly_orders_for_failure_rate['status'] == 'Failed']) / len(monthly_orders_for_failure_rate) * 100 if len(monthly_orders_for_failure_rate) > 0 else 0
-            analysis_scope = f"{city} city ({time_period}){trend_note}"
+                
+                current_failure_rate = len(city_orders[city_orders['status'] == 'Failed']) / len(city_orders) * 100 if len(city_orders) > 0 else 0
+                analysis_scope = f"{city} scaling ({time_period}){trend_note}"
+                city_warehouse_capacity = city_warehouses['capacity'].sum() if len(city_warehouses) > 0 else warehouses_df['capacity'].sum() // 10
         else:
-            # Global analysis if no city specified - use monthly average
+            # Global analysis if no city specified
             if 'order_date' in orders_df.columns:
                 orders_df['year_month'] = orders_df['order_date'].dt.to_period('M')
                 monthly_counts = orders_df.groupby('year_month').size()
@@ -944,61 +963,83 @@ class EnhancedCSVEngine:
             else:
                 current_monthly_orders = len(orders_df) // 12
             current_failure_rate = len(orders_df[orders_df['status'] == 'Failed']) / len(orders_df) * 100
-            analysis_scope = "overall system (monthly average)"
+            analysis_scope = "overall system scaling"
+            city_warehouse_capacity = warehouses_df['capacity'].sum()
         
-        # Capacity analysis
-        warehouses_df = self.dataframes['warehouses']
-        total_warehouse_capacity = warehouses_df['capacity'].sum()
-        current_utilization = current_monthly_orders / total_warehouse_capacity * 100
+        # Capacity analysis - use city-specific capacity for better accuracy
+        relevant_capacity = city_warehouse_capacity if city else warehouses_df['capacity'].sum()
+        current_utilization = (current_monthly_orders / relevant_capacity * 100) if relevant_capacity > 0 else 0
         
-        # Projected impact
-        new_utilization = (current_monthly_orders + extra_orders) / total_warehouse_capacity * 100
-        projected_failure_increase = self._calculate_failure_increase_with_volume(extra_orders, current_monthly_orders)
+        # Projected impact with improved calculations
+        new_total_orders = current_monthly_orders + extra_orders
+        new_utilization = (new_total_orders / relevant_capacity * 100) if relevant_capacity > 0 else 100
         
-        # Resource requirements
-        additional_drivers_needed = max(1, extra_orders // 1000)  # Rough estimate
-        additional_warehouses_needed = 1 if new_utilization > 85 else 0
+        # Enhanced failure rate prediction
+        projected_failure_increase = self._calculate_enhanced_failure_increase(
+            extra_orders, current_monthly_orders, current_failure_rate, 
+            new_utilization, is_new_city_expansion, city
+        )
         
-        explanation = f"""## 📈 Capacity Impact Analysis - {city if city else 'System'} + {extra_orders:,} Extra Monthly Orders
+        # Improved resource requirements
+        resource_requirements = self._calculate_enhanced_resource_requirements(
+            extra_orders, current_monthly_orders, new_utilization, 
+            is_new_city_expansion, city
+        )
+        
+        # Generate city-specific risk analysis
+        risk_analysis = self._generate_city_risk_analysis(city, extra_orders, new_utilization, is_new_city_expansion)
+        
+        # Generate enhanced mitigation strategy
+        mitigation_strategy = self._generate_enhanced_mitigation_strategy(
+            city, extra_orders, current_monthly_orders, new_utilization, 
+            resource_requirements, is_new_city_expansion
+        )
+        
+        explanation = f"""## 📈 Enhanced Capacity Impact Analysis - {city if city else 'System'} + {extra_orders:,} Extra Monthly Orders
 
 **Current {analysis_scope.title()} Status:**
-• Current monthly orders: {current_monthly_orders:,} {'(city-specific)' if city else '(system-wide)'}
+• Current monthly orders: {current_monthly_orders:,} {'(expansion baseline)' if is_new_city_expansion else '(current operations)'}
 • Current failure rate: {current_failure_rate:.1f}%
-• Warehouse utilization: {current_utilization:.1f}%
-• Total warehouse capacity: {total_warehouse_capacity:,} units
+• {'City' if city else 'System'} warehouse utilization: {current_utilization:.1f}%
+• Relevant warehouse capacity: {relevant_capacity:,} units
 
 **Projected Impact:**
-• New monthly volume: {current_monthly_orders + extra_orders:,} orders
+• New monthly volume: {new_total_orders:,} orders
 • New utilization: {new_utilization:.1f}%
 • Projected failure rate: {current_failure_rate + projected_failure_increase:.1f}%
-• Capacity strain: {'HIGH' if new_utilization > 85 else 'MODERATE' if new_utilization > 70 else 'LOW'}
+• Capacity strain: {'CRITICAL' if new_utilization > 95 else 'HIGH' if new_utilization > 85 else 'MODERATE' if new_utilization > 70 else 'LOW'}
 
-**Resource Requirements:**
-• Additional drivers needed: {additional_drivers_needed}
-• Additional warehouses: {additional_warehouses_needed}
-• Infrastructure investment: ${self._estimate_infrastructure_cost(additional_drivers_needed, additional_warehouses_needed):,.0f}
+**Enhanced Resource Requirements:**
+• Additional drivers needed: {resource_requirements['drivers']}
+• Additional warehouses: {resource_requirements['warehouses']}
+• Additional vehicles: {resource_requirements['vehicles']}
+• Infrastructure investment: ${resource_requirements['total_cost']:,.0f}
 
 **Risk Assessment:**
-• Volume surge risk: {'HIGH' if extra_orders > current_monthly_orders * 0.3 else 'MODERATE'}
-• System bottlenecks: {self._identify_bottlenecks(new_utilization)}
+• Volume surge risk: {'CRITICAL' if extra_orders > current_monthly_orders * 2 else 'HIGH' if extra_orders > current_monthly_orders * 0.5 else 'MODERATE'}
+• System bottlenecks: {self._identify_enhanced_bottlenecks(new_utilization, is_new_city_expansion, city)}
 • Failure risk increase: {projected_failure_increase:.1f} percentage points
+• Market readiness: {'New market entry risks' if is_new_city_expansion else 'Scaling existing operations'}
 
-**{city + ' ' if city else ''}Mitigation Strategy:**
-• Phase rollout over 3-6 months
-• {'Focus on ' + city + ' warehouse capacity' if city else 'Increase warehouse capacity by ' + str(max(10, int(projected_failure_increase * 5))) + '%'}
-• Hire {additional_drivers_needed} additional drivers {'in ' + city + ' region' if city else 'across regions'}
-• Implement load balancing across warehouses
+{risk_analysis}
+
+**Enhanced {city + ' ' if city else ''}Mitigation Strategy:**
+{mitigation_strategy}
 
 ---
 
-## 🔍 Predictive Analysis
+## 🔍 Enhanced Predictive Analysis
 
 **Analysis Scope:** {analysis_scope.title()}
-**Historical Volume Correlation:**
-• Past volume increases show {projected_failure_increase:.1f}% failure rate increase per 10k orders
-• Peak capacity threshold: {total_warehouse_capacity * 0.85:.0f} orders/month
-• Recommended max utilization: 80% ({total_warehouse_capacity * 0.8:.0f} orders/month)
-{f'• {city} current market share: {current_monthly_orders/len(orders_df)*100:.1f}% of total orders' if city else ''}"""
+**Predictive Modeling Results:**
+• Volume impact coefficient: {projected_failure_increase/max(1, extra_orders//1000):.2f}% failure increase per 1k orders
+• Capacity threshold: {relevant_capacity * 0.85:.0f} orders/month (85% utilization)
+• Recommended max utilization: 80% ({relevant_capacity * 0.8:.0f} orders/month)
+• Break-even timeline: {resource_requirements.get('break_even_months', 12)} months
+{f'• {city} market penetration potential: {min(100, (new_total_orders/1000)*2):.1f}% of addressable market' if city and is_new_city_expansion else ''}
+{f'• {city} current market share: {current_monthly_orders/len(orders_df)*100:.1f}% of total orders' if city and not is_new_city_expansion else ''}
+
+**Success Probability:** {85 if new_utilization < 80 else 70 if new_utilization < 90 else 50}% (based on utilization and resource availability)"""
         
         return {
             'success': True,
@@ -2047,17 +2088,60 @@ class EnhancedCSVEngine:
         
         return "N/A"
     
-    def _calculate_failure_increase_with_volume(self, extra_orders: int, current_orders: int) -> float:
-        """Calculate projected failure rate increase with volume"""
-        # Simple model: failure rate increases with volume due to capacity strain
-        volume_increase_ratio = extra_orders / current_orders
+    def _calculate_enhanced_failure_increase(self, extra_orders: int, current_orders: int, 
+                                           current_failure_rate: float, new_utilization: float,
+                                           is_new_city: bool, city: str = None) -> float:
+        """Calculate enhanced failure rate increase with multiple factors"""
+        # Base volume impact
+        volume_increase_ratio = extra_orders / max(current_orders, 100)  # Avoid division by very small numbers
         
-        if volume_increase_ratio < 0.1:
-            return 0.5  # Minimal impact
-        elif volume_increase_ratio < 0.3:
-            return 2.0  # Moderate impact
+        # Volume impact factor
+        if volume_increase_ratio < 0.2:
+            volume_impact = 0.5
+        elif volume_increase_ratio < 0.5:
+            volume_impact = 1.5
+        elif volume_increase_ratio < 1.0:
+            volume_impact = 3.0
+        elif volume_increase_ratio < 2.0:
+            volume_impact = 5.0
         else:
-            return 5.0  # High impact
+            volume_impact = 8.0  # Very high volume surge
+        
+        # Utilization impact factor
+        if new_utilization > 95:
+            utilization_impact = 4.0
+        elif new_utilization > 85:
+            utilization_impact = 2.5
+        elif new_utilization > 70:
+            utilization_impact = 1.0
+        else:
+            utilization_impact = 0.2
+        
+        # New city expansion penalty
+        expansion_penalty = 2.0 if is_new_city else 0.0
+        
+        # City-specific risk factors
+        city_risk_factor = self._get_city_risk_factor(city) if city else 1.0
+        
+        # Calculate total failure increase
+        total_increase = (volume_impact + utilization_impact + expansion_penalty) * city_risk_factor
+        
+        # Cap at reasonable maximum (don't predict more than 15% increase)
+        return min(15.0, total_increase)
+    
+    def _get_city_risk_factor(self, city: str) -> float:
+        """Get city-specific risk factors based on known logistics challenges"""
+        city_risks = {
+            'Mumbai': 1.3,      # High traffic, complex logistics
+            'Delhi': 1.2,       # Traffic, weather variations
+            'Bengaluru': 1.1,   # Traffic, but good infrastructure
+            'Chennai': 1.0,     # Balanced
+            'Pune': 0.9,        # Good infrastructure, manageable traffic
+            'Ahmedabad': 0.8,   # Good business environment, lower complexity
+            'Hyderabad': 0.9,   # Growing city, moderate complexity
+            'Kolkata': 1.2,     # Infrastructure challenges
+        }
+        return city_risks.get(city, 1.0)  # Default neutral factor
     
     def _estimate_infrastructure_cost(self, drivers: int, warehouses: int) -> float:
         """Estimate infrastructure investment cost"""
@@ -2065,16 +2149,264 @@ class EnhancedCSVEngine:
         warehouse_cost = warehouses * 500000  # $500k per warehouse
         return driver_cost + warehouse_cost
     
-    def _identify_bottlenecks(self, utilization: float) -> str:
-        """Identify system bottlenecks based on utilization"""
-        if utilization > 90:
-            return "Warehouse capacity, driver availability, processing speed"
-        elif utilization > 80:
-            return "Warehouse capacity, peak hour processing"
-        elif utilization > 70:
-            return "Driver scheduling during peak periods"
+    def _calculate_enhanced_resource_requirements(self, extra_orders: int, current_orders: int,
+                                                new_utilization: float, is_new_city: bool, city: str = None) -> Dict[str, Any]:
+        """Calculate enhanced resource requirements with detailed breakdown"""
+        # Base calculations
+        orders_per_driver_per_month = 800  # Industry standard
+        orders_per_vehicle_per_month = 1000
+        warehouse_capacity_per_unit = 1000  # orders per month per warehouse unit
+        
+        # Calculate additional drivers needed
+        additional_drivers = max(1, extra_orders // orders_per_driver_per_month)
+        
+        # Calculate additional vehicles needed (slightly less than drivers due to shared vehicles)
+        additional_vehicles = max(1, extra_orders // orders_per_vehicle_per_month)
+        
+        # Calculate additional warehouse capacity needed
+        if new_utilization > 90:
+            additional_warehouses = max(1, extra_orders // (warehouse_capacity_per_unit * 5))  # Need more warehouses at high utilization
+        elif new_utilization > 80:
+            additional_warehouses = max(0, extra_orders // (warehouse_capacity_per_unit * 8))
         else:
-            return "No significant bottlenecks expected"
+            additional_warehouses = 0
+        
+        # New city expansion requires additional infrastructure
+        if is_new_city:
+            additional_drivers += 5  # Base team for new city
+            additional_vehicles += 3  # Base fleet
+            additional_warehouses = max(1, additional_warehouses)  # At least one warehouse for new city
+        
+        # City-specific adjustments
+        city_multiplier = self._get_city_resource_multiplier(city) if city else 1.0
+        additional_drivers = int(additional_drivers * city_multiplier)
+        additional_vehicles = int(additional_vehicles * city_multiplier)
+        
+        # Calculate costs
+        driver_cost = additional_drivers * 60000  # $60k per driver (salary, training, benefits)
+        vehicle_cost = additional_vehicles * 40000  # $40k per vehicle (purchase/lease, insurance)
+        warehouse_cost = additional_warehouses * 800000  # $800k per warehouse (setup, equipment)
+        setup_cost = 200000 if is_new_city else 50000  # One-time setup costs
+        
+        total_cost = driver_cost + vehicle_cost + warehouse_cost + setup_cost
+        
+        # Calculate break-even timeline
+        monthly_revenue_per_order = 25  # Average revenue per order
+        monthly_additional_revenue = extra_orders * monthly_revenue_per_order
+        break_even_months = max(6, int(total_cost / max(monthly_additional_revenue, 1)))
+        
+        return {
+            'drivers': additional_drivers,
+            'vehicles': additional_vehicles,
+            'warehouses': additional_warehouses,
+            'total_cost': total_cost,
+            'breakdown': {
+                'driver_cost': driver_cost,
+                'vehicle_cost': vehicle_cost,
+                'warehouse_cost': warehouse_cost,
+                'setup_cost': setup_cost
+            },
+            'break_even_months': break_even_months
+        }
+    
+    def _get_city_resource_multiplier(self, city: str) -> float:
+        """Get city-specific resource multipliers based on operational complexity"""
+        city_multipliers = {
+            'Mumbai': 1.4,      # High cost, complex operations
+            'Delhi': 1.3,       # High cost, regulatory complexity
+            'Bengaluru': 1.2,   # Higher costs, but good talent pool
+            'Chennai': 1.1,     # Moderate costs
+            'Pune': 1.0,        # Balanced costs and complexity
+            'Ahmedabad': 0.9,   # Lower operational costs
+            'Hyderabad': 1.0,   # Balanced
+            'Kolkata': 1.1,     # Infrastructure challenges increase costs
+        }
+        return city_multipliers.get(city, 1.0)
+    
+    def _identify_enhanced_bottlenecks(self, utilization: float, is_new_city: bool, city: str = None) -> str:
+        """Identify enhanced system bottlenecks with city-specific considerations"""
+        bottlenecks = []
+        
+        if utilization > 95:
+            bottlenecks.extend(["Critical warehouse capacity shortage", "Driver availability crisis", "Processing speed limitations"])
+        elif utilization > 85:
+            bottlenecks.extend(["Warehouse capacity constraints", "Peak hour processing delays"])
+        elif utilization > 70:
+            bottlenecks.extend(["Driver scheduling during peak periods", "Warehouse space optimization needed"])
+        
+        # New city specific bottlenecks
+        if is_new_city:
+            bottlenecks.extend(["Local market knowledge gap", "Supplier network establishment", "Regulatory compliance setup"])
+        
+        # City-specific bottlenecks
+        if city:
+            city_bottlenecks = self._get_city_specific_bottlenecks(city)
+            bottlenecks.extend(city_bottlenecks)
+        
+        return ", ".join(bottlenecks) if bottlenecks else "No significant bottlenecks expected"
+    
+    def _get_city_specific_bottlenecks(self, city: str) -> List[str]:
+        """Get city-specific operational bottlenecks"""
+        city_bottlenecks = {
+            'Mumbai': ["Traffic congestion", "High real estate costs", "Parking limitations"],
+            'Delhi': ["Air quality restrictions", "Seasonal weather impacts", "Traffic regulations"],
+            'Bengaluru': ["Traffic congestion", "Infrastructure development zones"],
+            'Chennai': ["Monsoon season logistics", "Port area congestion"],
+            'Pune': ["Industrial area access", "Peak hour traffic"],
+            'Ahmedabad': ["Industrial zone coordination", "Seasonal demand variations"],
+            'Hyderabad': ["Rapid urbanization challenges", "IT corridor traffic"],
+            'Kolkata': ["Infrastructure limitations", "Narrow road access"],
+        }
+        return city_bottlenecks.get(city, [])
+    
+    def _generate_city_risk_analysis(self, city: str, extra_orders: int, new_utilization: float, is_new_city: bool) -> str:
+        """Generate city-specific risk analysis"""
+        if not city:
+            return ""
+        
+        risk_analysis = f"\n**{city}-Specific Risk Analysis:**\n"
+        
+        # Market risks
+        if is_new_city:
+            risk_analysis += f"• Market entry risk: Unknown customer behavior and demand patterns\n"
+            risk_analysis += f"• Competition risk: Established local players may respond aggressively\n"
+            risk_analysis += f"• Regulatory risk: New city compliance and permit requirements\n"
+        else:
+            risk_analysis += f"• Market saturation risk: {'High' if new_utilization > 85 else 'Moderate'} - existing market expansion\n"
+        
+        # Operational risks
+        city_risks = self._get_city_operational_risks(city)
+        for risk in city_risks:
+            risk_analysis += f"• {risk}\n"
+        
+        # Volume-specific risks
+        if extra_orders > 10000:
+            risk_analysis += f"• Scale risk: Large volume increase may strain quality control\n"
+        
+        return risk_analysis
+    
+    def _get_city_operational_risks(self, city: str) -> List[str]:
+        """Get city-specific operational risks"""
+        city_risks = {
+            'Mumbai': [
+                "Infrastructure risk: High traffic congestion affecting delivery times",
+                "Cost risk: Premium real estate and operational costs",
+                "Weather risk: Monsoon season disruptions"
+            ],
+            'Delhi': [
+                "Environmental risk: Air quality restrictions on vehicle operations",
+                "Regulatory risk: Strict traffic and pollution norms",
+                "Seasonal risk: Extreme weather variations"
+            ],
+            'Bengaluru': [
+                "Traffic risk: Severe congestion during peak hours",
+                "Infrastructure risk: Ongoing construction affecting routes",
+                "Talent risk: High competition for skilled drivers"
+            ],
+            'Chennai': [
+                "Weather risk: Monsoon and cyclone season impacts",
+                "Port risk: Industrial area congestion",
+                "Infrastructure risk: Flood-prone areas"
+            ],
+            'Pune': [
+                "Growth risk: Rapid expansion affecting infrastructure",
+                "Industrial risk: Heavy vehicle restrictions in certain areas",
+                "Competition risk: Multiple logistics players"
+            ],
+            'Ahmedabad': [
+                "Industrial risk: Coordination with manufacturing schedules",
+                "Seasonal risk: Festival season demand spikes",
+                "Infrastructure risk: Industrial zone access limitations"
+            ]
+        }
+        return city_risks.get(city, ["Standard operational risks apply"])
+    
+    def _generate_enhanced_mitigation_strategy(self, city: str, extra_orders: int, current_orders: int,
+                                             new_utilization: float, resource_requirements: Dict, is_new_city: bool) -> str:
+        """Generate enhanced mitigation strategy with specific action items"""
+        strategy = []
+        
+        # Phased rollout strategy
+        if extra_orders > current_orders:
+            phases = min(4, max(2, extra_orders // 5000))
+            strategy.append(f"• Phase rollout over {phases} phases (3-4 months each)")
+            strategy.append(f"• Start with {extra_orders // phases:,} orders in Phase 1")
+        
+        # Infrastructure strategy
+        if resource_requirements['warehouses'] > 0:
+            strategy.append(f"• Establish {resource_requirements['warehouses']} additional warehouse(s) {'in ' + city if city else ''}")
+        
+        if resource_requirements['drivers'] > 5:
+            strategy.append(f"• Recruit and train {resource_requirements['drivers']} drivers in batches of 10-15")
+        else:
+            strategy.append(f"• Recruit {resource_requirements['drivers']} additional drivers")
+        
+        # City-specific strategies
+        if city:
+            city_strategies = self._get_city_specific_strategies(city, is_new_city)
+            strategy.extend(city_strategies)
+        
+        # Utilization-based strategies
+        if new_utilization > 85:
+            strategy.append("• Implement dynamic load balancing across warehouses")
+            strategy.append("• Establish overflow capacity partnerships")
+        
+        # Technology and process improvements
+        strategy.append("• Deploy predictive analytics for demand forecasting")
+        strategy.append("• Implement real-time tracking and optimization")
+        
+        # Risk mitigation
+        if is_new_city:
+            strategy.append("• Establish local partnerships for market knowledge")
+            strategy.append("• Create dedicated customer success team for market entry")
+        
+        return "\n".join(strategy)
+    
+    def _get_city_specific_strategies(self, city: str, is_new_city: bool) -> List[str]:
+        """Get city-specific mitigation strategies"""
+        base_strategies = {
+            'Mumbai': [
+                "• Optimize delivery routes to avoid peak traffic hours",
+                "• Establish micro-fulfillment centers in key areas",
+                "• Partner with local logistics providers for last-mile delivery"
+            ],
+            'Delhi': [
+                "• Plan for seasonal weather disruptions",
+                "• Ensure compliance with environmental regulations",
+                "• Develop alternative routes for air quality restriction days"
+            ],
+            'Bengaluru': [
+                "• Focus on off-peak delivery windows",
+                "• Establish satellite warehouses in IT corridors",
+                "• Implement traffic-aware routing algorithms"
+            ],
+            'Chennai': [
+                "• Develop monsoon contingency plans",
+                "• Establish flood-resistant storage facilities",
+                "• Create port area delivery optimization"
+            ],
+            'Pune': [
+                "• Coordinate with industrial area schedules",
+                "• Establish presence in key manufacturing zones",
+                "• Develop B2B focused service offerings"
+            ],
+            'Ahmedabad': [
+                "• Align with industrial manufacturing cycles",
+                "• Prepare for festival season demand spikes",
+                "• Establish strong B2B relationships"
+            ]
+        }
+        
+        strategies = base_strategies.get(city, [])
+        
+        if is_new_city:
+            strategies.extend([
+                f"• Conduct {city} market research and customer behavior analysis",
+                f"• Establish local hiring and training programs",
+                f"• Build relationships with {city} regulatory authorities"
+            ])
+        
+        return strategies
     
     def _analyze_trends(self, user_query: str) -> Dict[str, Any]:
         """Analyze trends over time"""

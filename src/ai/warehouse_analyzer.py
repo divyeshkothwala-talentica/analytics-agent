@@ -333,3 +333,4 @@ class WarehouseCapacityAnalyzer:
             return response
         
         return "📊 Warehouse capacity analysis completed."
+
