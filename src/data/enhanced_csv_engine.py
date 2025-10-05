@@ -2548,7 +2548,7 @@ class EnhancedCSVEngine:
             # Create value buckets
             orders_df['value_bucket'] = pd.cut(orders_df['amount'], bins=5, labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'])
             
-            value_failure_rates = orders_df.groupby('value_bucket').apply(
+            value_failure_rates = orders_df.groupby('value_bucket', observed=True).apply(
                 lambda x: (x['status'] == 'Failed').sum() / len(x) * 100
             ).round(2)
             
